@@ -5,4 +5,4 @@ CMakeCache.txt
 ./.vscode/*
 ./Makefile
 CMakeFiles/
-
+cmake_install.cmake
