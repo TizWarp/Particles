@@ -2,15 +2,15 @@
 #include "particle.hpp"
 #include "quadtree.hpp"
 #include "utils.hpp"
+#include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Window/Keyboard.hpp>
 #include <cmath>
 #include <cstdio>
 #include <vector>
-#include <SFML/Graphics/RectangleShape.hpp>
 
-const int SUBSTEPS = 12;
+const int SUBSTEPS = 8;
 
 static bool gravity_enabled = true;
 static std::vector<Particle> particles;
@@ -18,6 +18,7 @@ static int bounds_height = 400;
 static int bounds_width = 600;
 static float bounds_elasticity = 0.25f;
 static Particle *selectedParticle = nullptr;
+static bool render_quadtree = false;
 
 void selectBall(sf::Vector2f pos) {
   for (int index = 0; index < particles.size(); index++) {
@@ -46,14 +47,17 @@ void physicsUpdate(float dt, sf::RenderWindow &window) {
     selectedParticle->velocity += dir * distance * dt * 100.0f;
   }
 
-  for (int sub_step = 0; sub_step < SUBSTEPS; sub_step++) {
+  QuadTree quad_tree =
+      QuadTree(sf::Vector2f((float)bounds_width, (float)bounds_height),
+               sf::Vector2f(0.0f, 0.0f));
 
-    QuadTree quad_tree =
-        QuadTree(sf::Vector2f((float)bounds_width, (float)bounds_height),
-                 sf::Vector2f(0.0f, 0.0f));
-    quad_tree.regenerate();
+  quad_tree.regenerate();
 
+  if (render_quadtree) {
     quad_tree.render(window);
+  }
+
+  for (int sub_step = 0; sub_step < SUBSTEPS; sub_step++) {
 
     quad_tree.physicsProcess(substep_time);
   }
@@ -72,35 +76,47 @@ void setBounds(int width, int height) {
 }
 
 void QuadTree::regenerate() {
+
   particle_indexs.clear();
+  int particle_count = 0;
   for (int index = 0; index < particles.size(); index++) {
     Particle *particle = &particles[index];
 
-    if (doesBoundContainPoint(particle->position, upper_bounds, lower_bounds)) {
+    if (isParticlePartilWithin(particle, upper_bounds, lower_bounds)) {
       particle_indexs.push_back(index);
+      if (doesBoundContainPoint(particle->position, upper_bounds,
+                                lower_bounds)) {
+        particle_count += 1;
+      }
     }
 
-    if (particle_indexs.size() > QuadTree::PARTICLE_MAX) {
+    if (particle_count > QuadTree::PARTICLE_MAX) {
 
       particle_indexs.clear();
 
       sf::Vector2f top_left = lower_bounds;
       sf::Vector2f bottom_right = upper_bounds;
-      sf::Vector2f center = upper_bounds/2.0f;
-      sf::Vector2f bottom_center = sf::Vector2f(upper_bounds.x/2.0f, upper_bounds.y);
-      sf::Vector2f top_center = sf::Vector2f(upper_bounds.x/2.0f, lower_bounds.y);
-      sf::Vector2f left_center = sf::Vector2f(lower_bounds.x, upper_bounds.y/2.0f);
-      sf::Vector2f right_center = sf::Vector2f(upper_bounds.x, upper_bounds.y/2.0f);
+      sf::Vector2f center =
+          lower_bounds + ((upper_bounds - lower_bounds) / 2.0f);
+      sf::Vector2f bottom_center = sf::Vector2f(center.x, upper_bounds.y);
+      sf::Vector2f top_center = sf::Vector2f(center.x, lower_bounds.y);
+      sf::Vector2f left_center = sf::Vector2f(lower_bounds.x, center.y);
+      sf::Vector2f right_center = sf::Vector2f(upper_bounds.x, center.y);
 
+      QuadTree child1 = QuadTree(center, top_left);
+      QuadTree child2 = QuadTree(bottom_right, center); // problem child
+      QuadTree child3 = QuadTree(bottom_center, left_center);
+      QuadTree child4 = QuadTree(right_center, top_center);
 
-      children.push_back(QuadTree(center, top_left));
-      children.push_back(QuadTree(bottom_right, center));
-      children.push_back(QuadTree(bottom_center, left_center));
-      children.push_back(QuadTree(right_center, top_center));
+      child1.regenerate();
+      child2.regenerate();
+      child3.regenerate();
+      child4.regenerate();
 
-      for (int child_index = 0; child_index < children.size(); child_index++) {
-        children[child_index].regenerate();
-      }
+      children.push_back(child1);
+      children.push_back(child2);
+      children.push_back(child3);
+      children.push_back(child4);
 
       return;
     }
@@ -109,9 +125,10 @@ void QuadTree::regenerate() {
 
 void QuadTree::physicsProcess(float dt) {
   if (particle_indexs.empty()) {
-    for (QuadTree tree : children) {
-      tree.physicsProcess(dt);
+    for (QuadTree child : children) {
+      child.physicsProcess(dt);
     }
+    return;
   }
 
   for (int index : particle_indexs) {
@@ -129,14 +146,10 @@ void QuadTree::physicsProcess(float dt) {
 
       if (distance < radi) {
         sf::Vector2f dir = directionTo(particle->position, particle2->position);
-        float dif = radi - distance * 0.125f;
-        particle->velocity -= dir * dif;
-        particle2->velocity += dir * dif;
-        particle->position -=
-            dir * dif * 0.5f * dt; // * particle->radius * 0.25f * substep_time;
-        particle2->position +=
-            dir * dif * 0.5f *
-            dt; // * particle2->radius * 0.25f * substep_time;
+        float dif = (radi - distance);
+        particle->velocity -= dir * dif * 0.25f;
+        particle->position -= dir * dif;
+        particle2->position += dir * dif;
       }
     }
 
@@ -162,9 +175,13 @@ void QuadTree::physicsProcess(float dt) {
 
     if (gravity_enabled) {
       particle->velocity.y += 900.0f * dt;
-      if (particle->velocity.y > 700.0f) {
-        particle->velocity.y = 700.0f;
+      if (particle->velocity.y > 500.0f) {
+        particle->velocity.y = 500.0f;
       }
     }
   }
 }
+
+void toggleGravity() { gravity_enabled = !gravity_enabled; }
+
+void toggleQuadTree() { render_quadtree = !render_quadtree; }

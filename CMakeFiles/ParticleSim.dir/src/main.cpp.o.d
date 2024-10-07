@@ -194,6 +194,7 @@ CMakeFiles/ParticleSim.dir/src/main.cpp.o: \
  /usr/include/c++/14.2.1/bits/stream_iterator.h \
  /usr/include/SFML/System/String.inl \
  /home/tizwarp/Projects/particle_sim/src/simulation.hpp \
+ /home/tizwarp/Projects/particle_sim/src/utils.hpp \
  /usr/include/SFML/Graphics/RectangleShape.hpp /usr/include/SFML/Main.hpp \
  /usr/include/SFML/Window.hpp /usr/include/SFML/System.hpp \
  /usr/include/SFML/System/Err.hpp /usr/include/c++/14.2.1/ostream \

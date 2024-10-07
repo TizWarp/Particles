@@ -1,5 +1,6 @@
 #include "particle.hpp"
 #include "simulation.hpp"
+#include "utils.hpp"
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
@@ -7,6 +8,7 @@
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Window.hpp>
 #include <SFML/Window/Event.hpp>
+#include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
 #include <SFML/Window/VideoMode.hpp>
 #include <SFML/Window/Window.hpp>
@@ -24,8 +26,7 @@ int main() {
 
   sf::Clock deltaClock;
 
-  addParticle(sf::Color::Red, 8.0f, sf::Vector2f(100.0f, 70.0f),
-              sf::Vector2f(500.0f, 0.0f));
+  int spawn_timer = 0;
 
   while (window.isOpen()) {
     sf::Event event;
@@ -43,7 +44,7 @@ int main() {
       }
       if (event.type == sf::Event::MouseButtonPressed) {
         if (event.mouseButton.button == sf::Mouse::Button::Right) {
-          addParticle(sf::Color::Red, 8.0f,
+          addParticle(sf::Color::Red, 10.0f,
                       sf::Vector2f((float)event.mouseButton.x,
                                    (float)event.mouseButton.y),
                       sf::Vector2f(0.0f, 0.0f));
@@ -62,6 +63,14 @@ int main() {
         mouse_pos.x = (float)event.mouseMove.x;
         mouse_pos.y = (float)event.mouseMove.y;
       }
+      if (event.type == sf::Event::KeyPressed){
+        if (event.key.code == sf::Keyboard::Key::G){
+          toggleGravity();
+        }
+        if (event.key.code == sf::Keyboard::Key::Q){
+          toggleQuadTree();
+        }
+      }
     }
 
     float deltaTime = deltaClock.restart().asSeconds();
@@ -74,13 +83,17 @@ int main() {
 
     renderPass(window);
 
-
     window.display();
 
-    if (getParticleCount() < -1) {
 
-      addParticle(sf::Color::Red, getParticleCount() % 15, sf::Vector2f(200.0f, 50.0f),
-                  sf::Vector2f(0.0f, 0.0f));
+    spawn_timer = (spawn_timer += 1) % 1;
+
+    if (getParticleCount() < 700 && spawn_timer == 0) {
+
+
+
+      addParticle(sf::Color::Red, 10.0f, sf::Vector2f(200.0f, 50.0f),
+                  sf::Vector2f(100.0f, 0.0f));
     }
   }
 

@@ -16,3 +16,7 @@ void selectBall(sf::Vector2f pos);
 void unselectBall();
 
 int getParticleCount();
+
+void toggleGravity();
+
+void toggleQuadTree();

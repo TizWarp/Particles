@@ -4,7 +4,7 @@
 #include <vector>
 class QuadTree{
   public:
-    const int PARTICLE_MAX = 8;
+    const int PARTICLE_MAX = 32;
     sf::Vector2f upper_bounds;
     sf::Vector2f lower_bounds;
     std::vector<int> particle_indexs;
@@ -16,8 +16,7 @@ class QuadTree{
     void regenerate();
     void physicsProcess(float dt);
     void render(sf::RenderWindow &window);
-
-    ~QuadTree();
+    bool isSubdivied();
 
   private:
     std::vector<QuadTree> children;
