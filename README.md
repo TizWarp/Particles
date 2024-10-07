@@ -11,11 +11,11 @@ the Quad tree could use some work as well;
 ## Compiling
 
 #### Linux
-Make sure sfml is located on your system
-Install cmake/make
-run cmake ./
-run make
-run ParticleSim executable
+- Make sure sfml is located on your system
+- Install cmake/make
+- run cmake ./
+- run make
+- run ParticleSim executable
 
 #### Windows
-IDK Bru
+- IDK Bru
