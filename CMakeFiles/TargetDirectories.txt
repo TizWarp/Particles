@@ -1,3 +1,0 @@
-/home/tizwarp/Projects/Ppopccorn/CMakeFiles/ParticleSim.dir
-/home/tizwarp/Projects/Ppopccorn/CMakeFiles/edit_cache.dir
-/home/tizwarp/Projects/Ppopccorn/CMakeFiles/rebuild_cache.dir
