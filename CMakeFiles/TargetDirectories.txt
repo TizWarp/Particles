@@ -1,3 +1,0 @@
-/home/tizwarp/Projects/particle_sim/CMakeFiles/ParticleSim.dir
-/home/tizwarp/Projects/particle_sim/CMakeFiles/edit_cache.dir
-/home/tizwarp/Projects/particle_sim/CMakeFiles/rebuild_cache.dir
