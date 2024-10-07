@@ -1,0 +1,7 @@
+ParticleSim
+CMakeCache.txt
+./CMakeFiles/*
+./misc/*
+./.vscode/*
+
+
