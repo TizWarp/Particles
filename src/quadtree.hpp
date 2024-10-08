@@ -5,17 +5,18 @@
 #include <vector>
 class QuadTree{
   public:
-    const int PARTICLE_MAX = 32;
+    const int FIRST_PARTICLE_MAX = 8;
     sf::Vector2f upper_bounds;
     sf::Vector2f lower_bounds;
     std::vector<int> owned_particles;
     std::vector<int> shared_particles;
+    int particle_max;
 
-    QuadTree(sf::Vector2f upper_bounds, sf::Vector2f lower_bounds);
+    QuadTree(sf::Vector2f upper_bounds, sf::Vector2f lower_bounds, int particle_max = 8);
 
     QuadTree(){};
 
-    void resize(int width, int height);
+    void resize(sf::Vector2f upper_bounds, sf::Vector2f lower_bounds);
 
     void clear();
     void regenerate();

@@ -6,8 +6,9 @@
 #include <cstdio>
 #include <type_traits>
 
-QuadTree::QuadTree(sf::Vector2f upper_bounds, sf::Vector2f lower_bounds){
+QuadTree::QuadTree(sf::Vector2f upper_bounds, sf::Vector2f lower_bounds, int particle_max){
   this->upper_bounds = upper_bounds;
+  this->particle_max = particle_max;
   this->lower_bounds = lower_bounds;
   rect_shape = sf::RectangleShape(upper_bounds - lower_bounds);
   rect_shape.setPosition(lower_bounds);
@@ -40,8 +41,8 @@ void QuadTree::clear(){
 }
 
 
-void QuadTree::resize(int width, int height){
-  upper_bounds.x = (float)width;
-  upper_bounds.y = (float)height;
+void QuadTree::resize(sf::Vector2f upper_bounds, sf::Vector2f lower_bounds){
+  this->upper_bounds = upper_bounds;
+  this->lower_bounds = lower_bounds;
 }
 

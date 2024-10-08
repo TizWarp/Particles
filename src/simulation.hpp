@@ -3,8 +3,9 @@
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <cstdint>
 
-void addParticle(sf::Color color, float radius, sf::Vector2f position, sf::Vector2f velocity);
+void addParticle(float radius, sf::Vector2f position, sf::Vector2f velocity = sf::Vector2f(0.0f, 0.0f), uint8_t id = 0);
 
 void physicsUpdate(float dt, sf::RenderWindow &window);
 
@@ -20,3 +21,19 @@ int getParticleCount();
 void toggleGravity();
 
 void toggleQuadTree();
+
+void changeQuadCapacity(int change);
+
+int getQuadCapacity();
+
+void removeParticle();
+
+void clearParticles();
+
+void toggleInteractions();
+
+bool getInteractionsState();
+
+void changeSubstepCount(int change);
+
+int getSubstepCount();

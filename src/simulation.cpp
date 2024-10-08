@@ -7,18 +7,24 @@
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Window/Keyboard.hpp>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
+#include <cstdlib>
+#include <thread>
 #include <vector>
 
-const int SUBSTEPS = 8;
+int SUBSTEPS = 8;
 
-static bool gravity_enabled = true;
+static bool gravity_enabled = false;
 static std::vector<Particle> particles;
 static int bounds_height = 400;
 static int bounds_width = 600;
 static float bounds_elasticity = 0.25f;
 static Particle *selectedParticle = nullptr;
 static bool render_quadtree = false;
+static bool interactions_enabled = false;
+
+static int quad_max_var = 32;
 
 static QuadTree quad_tree;
 
@@ -33,9 +39,9 @@ void selectBall(sf::Vector2f pos) {
 
 void unselectBall() { selectedParticle = nullptr; }
 
-void addParticle(sf::Color color, float radius, sf::Vector2f position,
-                 sf::Vector2f velocity) {
-  particles.push_back(Particle(radius, color, position, velocity));
+void addParticle(float radius, sf::Vector2f position,
+                 sf::Vector2f velocity, uint8_t id) {
+  particles.push_back(Particle(radius, position, velocity, id));
 }
 
 int getParticleCount() { return particles.size(); }
@@ -49,8 +55,36 @@ void physicsUpdate(float dt, sf::RenderWindow &window) {
     selectedParticle->velocity += dir * distance * dt * 100.0f;
   }
 
+  sf::Vector2f heighest_particle = sf::Vector2f(0.0f, 0.0f);
+  sf::Vector2f lowest_particle =
+      sf::Vector2f((float)bounds_width, (float)bounds_height);
+  for (int particle_index = 0; particle_index < particles.size();
+       particle_index++) {
+    Particle *particle = &particles[particle_index];
+    if (particle->position.x < lowest_particle.x) {
+      lowest_particle.x = particle->position.x;
+    }
+    if (particle->position.y < lowest_particle.y) {
+      lowest_particle.y = particle->position.y;
+    }
+    if (particle->position.x > heighest_particle.x) {
+      heighest_particle.x = particle->position.x;
+    }
+    if (particle->position.y > heighest_particle.y) {
+      heighest_particle.y = particle->position.y;
+    }
+  }
+  if (particles.size() < 2 || lowest_particle == heighest_particle) {
+    heighest_particle = lowest_particle;
+    lowest_particle = sf::Vector2f(0.0f, 0.0f);
+    quad_tree.owned_particles.push_back(0);
+  }
+
+  /*lowest_particle = lowest_particle - (lowest_particle * 0.50f);*/
+  /*heighest_particle = heighest_particle * 1.50f;*/
+
   quad_tree.clear();
-  quad_tree.resize(bounds_width, bounds_height);
+  quad_tree.resize(heighest_particle, lowest_particle);
   quad_tree.regenerate();
 
   if (render_quadtree) {
@@ -89,7 +123,7 @@ void QuadTree::regenerate() {
       }
     }
 
-    if (owned_particles.size() > QuadTree::PARTICLE_MAX) {
+    if (owned_particles.size() > quad_max_var) {
 
       owned_particles.clear();
       shared_particles.clear();
@@ -103,10 +137,11 @@ void QuadTree::regenerate() {
       sf::Vector2f left_center = sf::Vector2f(lower_bounds.x, center.y);
       sf::Vector2f right_center = sf::Vector2f(upper_bounds.x, center.y);
 
-      QuadTree child1 = QuadTree(center, top_left);
-      QuadTree child2 = QuadTree(bottom_right, center); // problem child
-      QuadTree child3 = QuadTree(bottom_center, left_center);
-      QuadTree child4 = QuadTree(right_center, top_center);
+      QuadTree child1 = QuadTree(center, top_left, particle_max * 2);
+      QuadTree child2 =
+          QuadTree(bottom_right, center, particle_max * 2); // problem child
+      QuadTree child3 = QuadTree(bottom_center, left_center, particle_max * 2);
+      QuadTree child4 = QuadTree(right_center, top_center, particle_max * 2);
 
       child1.regenerate();
       child2.regenerate();
@@ -125,16 +160,25 @@ void QuadTree::regenerate() {
 
 void QuadTree::physicsProcess(float dt) {
   if (owned_particles.empty()) {
-    for (QuadTree child : children) {
-      child.physicsProcess(dt);
+    if (particle_max == QuadTree::FIRST_PARTICLE_MAX) {
+      std::thread thread1(&QuadTree::physicsProcess, &children[0], dt);
+      std::thread thread2(&QuadTree::physicsProcess, &children[0], dt);
+      std::thread thread3(&QuadTree::physicsProcess, &children[0], dt);
+      std::thread thread4(&QuadTree::physicsProcess, &children[0], dt);
+
+      thread1.join();
+      thread2.join();
+      thread3.join();
+      thread4.join();
+
+    } else {
+      for (QuadTree child : children) {
+        child.physicsProcess(dt);
+      }
     }
     return;
   }
 
-  for (int index : owned_particles) {
-    Particle *particle = &particles[index];
-    particle->update(dt);
-  }
 
   for (int index : shared_particles) {
     Particle *particle = &particles[index];
@@ -147,14 +191,33 @@ void QuadTree::physicsProcess(float dt) {
       float distance = distanceTo(particle->position, particle2->position);
       float radi = particle->radius + particle2->radius;
 
+      if (interactions_enabled) {
+        Particle::applyInteractionForces(particle, particle2);
+      }
+
       if (distance < radi) {
         sf::Vector2f dir = directionTo(particle->position, particle2->position);
         float dif = (radi - distance);
-        particle->velocity -= dir * 0.0625f * vecMagnitude(particle2->velocity);
-        particle2->velocity += dir * 0.0625f * vecMagnitude(particle->velocity);
-        particle->position -= dir * dif * 0.5f;
-        particle2->position += dir * dif * 0.5f;
+        particle->velocity -=
+            (dir *
+             ((vecMagnitude(particle2->velocity) * 0.125f) *
+              -((radToDeg(angleBetween(dir, particle2->velocity)) - 180.0f) /
+                180.0f)));
+        particle2->velocity +=
+            (dir *
+             ((vecMagnitude(particle->velocity) * 0.25f) *
+              -((radToDeg(angleBetween(dir, particle->velocity)) - 180.0f) /
+                180.0f)));
+        particle->position -= dir * dif * 0.25f;
+        particle2->position += dir * dif * 0.25f;
       }
+    }
+  }
+
+  for (int index : owned_particles) {
+    Particle *particle = &particles[index];
+    if (particle->velocity == sf::Vector2f(0.0f, 0.0f)) {
+      continue;
     }
 
     if (particle->position.y + particle->radius > (float)bounds_height) {
@@ -177,6 +240,7 @@ void QuadTree::physicsProcess(float dt) {
       particle->velocity.x = -particle->velocity.x * bounds_elasticity;
     }
 
+    particle->update(dt);
     if (gravity_enabled) {
       particle->velocity.y += 900.0f * dt;
       if (particle->velocity.y > 500.0f) {
@@ -189,3 +253,27 @@ void QuadTree::physicsProcess(float dt) {
 void toggleGravity() { gravity_enabled = !gravity_enabled; }
 
 void toggleQuadTree() { render_quadtree = !render_quadtree; }
+
+void changeQuadCapacity(int change) { quad_max_var += change; }
+
+int getQuadCapacity() { return quad_max_var; }
+
+void removeParticle() { particles.pop_back(); }
+
+void clearParticles() { particles.clear(); }
+
+void toggleInteractions() { interactions_enabled = !interactions_enabled; }
+
+bool getInteractionsState() { return interactions_enabled; }
+
+void changeSubstepCount(int change) {
+  SUBSTEPS += change;
+  if (SUBSTEPS < 8) {
+    SUBSTEPS = 8;
+  }
+  if (SUBSTEPS > 100) {
+    SUBSTEPS = 100;
+  }
+}
+
+int getSubstepCount() { return SUBSTEPS; }
