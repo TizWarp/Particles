@@ -26,3 +26,22 @@ void QuadTree::render(sf::RenderWindow &window){
 bool QuadTree::isSubdivied(){
   return children.size() > 0;
 }
+
+void QuadTree::clear(){
+  if (!children.empty()){
+    for (QuadTree child : children){
+      child.clear();
+    }
+  }
+
+  owned_particles.clear();
+  shared_particles.clear();
+  children.clear();
+}
+
+
+void QuadTree::resize(int width, int height){
+  upper_bounds.x = (float)width;
+  upper_bounds.y = (float)height;
+}
+

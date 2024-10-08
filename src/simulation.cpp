@@ -20,6 +20,8 @@ static float bounds_elasticity = 0.25f;
 static Particle *selectedParticle = nullptr;
 static bool render_quadtree = false;
 
+static QuadTree quad_tree;
+
 void selectBall(sf::Vector2f pos) {
   for (int index = 0; index < particles.size(); index++) {
     Particle *particle = &particles[index];
@@ -47,10 +49,8 @@ void physicsUpdate(float dt, sf::RenderWindow &window) {
     selectedParticle->velocity += dir * distance * dt * 100.0f;
   }
 
-  QuadTree quad_tree =
-      QuadTree(sf::Vector2f((float)bounds_width, (float)bounds_height),
-               sf::Vector2f(0.0f, 0.0f));
-
+  quad_tree.clear();
+  quad_tree.resize(bounds_width, bounds_height);
   quad_tree.regenerate();
 
   if (render_quadtree) {
@@ -77,22 +77,22 @@ void setBounds(int width, int height) {
 
 void QuadTree::regenerate() {
 
-  particle_indexs.clear();
-  int particle_count = 0;
+  owned_particles.clear();
   for (int index = 0; index < particles.size(); index++) {
     Particle *particle = &particles[index];
 
     if (isParticlePartilWithin(particle, upper_bounds, lower_bounds)) {
-      particle_indexs.push_back(index);
+      shared_particles.push_back(index);
       if (doesBoundContainPoint(particle->position, upper_bounds,
                                 lower_bounds)) {
-        particle_count += 1;
+        owned_particles.push_back(index);
       }
     }
 
-    if (particle_count > QuadTree::PARTICLE_MAX) {
+    if (owned_particles.size() > QuadTree::PARTICLE_MAX) {
 
-      particle_indexs.clear();
+      owned_particles.clear();
+      shared_particles.clear();
 
       sf::Vector2f top_left = lower_bounds;
       sf::Vector2f bottom_right = upper_bounds;
@@ -124,19 +124,22 @@ void QuadTree::regenerate() {
 }
 
 void QuadTree::physicsProcess(float dt) {
-  if (particle_indexs.empty()) {
+  if (owned_particles.empty()) {
     for (QuadTree child : children) {
       child.physicsProcess(dt);
     }
     return;
   }
 
-  for (int index : particle_indexs) {
+  for (int index : owned_particles) {
+    Particle *particle = &particles[index];
+    particle->update(dt);
+  }
+
+  for (int index : shared_particles) {
     Particle *particle = &particles[index];
 
-    particle->update(dt);
-
-    for (int index2 : particle_indexs) {
+    for (int index2 : shared_particles) {
       if (index == index2) {
         continue;
       }
@@ -147,9 +150,10 @@ void QuadTree::physicsProcess(float dt) {
       if (distance < radi) {
         sf::Vector2f dir = directionTo(particle->position, particle2->position);
         float dif = (radi - distance);
-        particle->velocity -= dir * dif * 0.25f;
-        particle->position -= dir * dif;
-        particle2->position += dir * dif;
+        particle->velocity -= dir * 0.0625f * vecMagnitude(particle2->velocity);
+        particle2->velocity += dir * 0.0625f * vecMagnitude(particle->velocity);
+        particle->position -= dir * dif * 0.5f;
+        particle2->position += dir * dif * 0.5f;
       }
     }
 

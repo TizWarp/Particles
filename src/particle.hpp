@@ -10,6 +10,7 @@ public:
   float radius;
   sf::Vector2f position;
   sf::Vector2f velocity;
+  sf::Color color;
 
   Particle(float radius, sf::Color color, sf::Vector2f position,
            sf::Vector2f velocity);
