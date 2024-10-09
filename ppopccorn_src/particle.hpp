@@ -43,8 +43,6 @@ public:
 
   static void applyInteractionForces(Particle *particle1, Particle *particle2);
 
-  static void addReaction(reactionFunc reaction_func, canReactFunc can_react);
-
 private:
   sf::CircleShape shape;
   inline static std::vector<ReactionDef> reactions;

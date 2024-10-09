@@ -54,8 +54,5 @@ void create_simulation(){
   enableReactions(true);
   enableSpawner(true);
   enableInteractions(true);
-  setFpsTarget(60);
-
-
-  
+  setFpsTarget(60); 
 };

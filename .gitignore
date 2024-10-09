@@ -9,4 +9,3 @@ cmake_install.cmake
 Makefile
 bin/
 lib/
-compile_flags.txt
