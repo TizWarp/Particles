@@ -44,6 +44,8 @@ Every particle has a color. There are eight colors int total each color is also 
 
 When `enableColors(int)` is called all colors up to the number passed in are enabled.
 
+If all you want is some multicolored particles go ahead and run `make` if everything compiled succussfully there should be binary with the same name as your directoty in **./bin**
+
 ### Interactions
 When interactions are enabled via `enableInteractions(bool)` a particle will be influenced by other particles around it \
 All interactions default to nothing so you must run `setInteraction(interaction_def, float)` to change them.
