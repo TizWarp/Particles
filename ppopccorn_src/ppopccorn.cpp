@@ -1,4 +1,3 @@
-#include "json_parser.hpp"
 #include "particle.hpp"
 #include "simulation.hpp"
 #include "utils.hpp"
@@ -25,6 +24,8 @@
 #include <string>
 #include <sys/types.h>
 #include <vector>
+#include "ppopccorn.hpp"
+
 
 static sf::Vector2f mouse_pos = sf::Vector2f(0.0f, 0.0f);
 
@@ -36,15 +37,13 @@ static int enabled_colors = 1;
 static bool should_spawn_particles = false;
 static bool show_debug_ingo = false;
 
+static int fps_target = 60;
+
 static int fps;
 
 int main(int argc, char *argv[]) {
 
-  if (argc > 1) {
-    JsonParser json_parser(argv[1]);
-    json_parser.parseFile();
-    json_parser.loadInteractions();
-  }
+  create_simulation();
 
   sf::Font font;
   font.loadFromFile("./res/Symbola.otf");
@@ -115,38 +114,6 @@ int main(int argc, char *argv[]) {
         mouse_pos.x = (float)event.mouseMove.x;
         mouse_pos.y = (float)event.mouseMove.y;
       }
-      if (event.type == sf::Event::KeyPressed) {
-        if (event.key.code == sf::Keyboard::Key::G) {
-          toggleGravity();
-        }
-        if (event.key.code == sf::Keyboard::Key::Q) {
-          toggleQuadTree();
-        }
-        if (event.key.code == sf::Keyboard::Up) {
-          enabled_colors += 1;
-          if (enabled_colors > 8) {
-            enabled_colors = 1;
-          }
-        }
-        if (event.key.code == sf::Keyboard::Down) {
-          enabled_colors -= 1;
-          if (enabled_colors < 1) {
-            enabled_colors = 8;
-          }
-        }
-        if (event.key.code == sf::Keyboard::S) {
-          should_spawn_particles = !should_spawn_particles;
-        }
-        if (event.key.code == sf::Keyboard::BackSpace) {
-          clearParticles();
-        }
-        if (event.key.code == sf::Keyboard::I) {
-          toggleInteractions();
-        }
-        if (event.key.code == sf::Keyboard::F3) {
-          show_debug_ingo = !show_debug_ingo;
-        }
-      }
     }
 
     float deltaTime = deltaClock.restart().asSeconds();
@@ -171,16 +138,16 @@ int main(int argc, char *argv[]) {
         sf::Vector2f((float)window.getSize().x, (float)window.getSize().y);
 
     spawn_timer = (spawn_timer += 1) % 5;
-    if (fps > 60 && spawn_timer == 0 && should_spawn_particles) {
+    if (fps > fps_target && spawn_timer == 0 && should_spawn_particles) {
       addParticle(5.0f, spawn_location / 2.0f,
                   sf::Vector2f(50.0f + (getParticleCount() % enabled_colors),
                                50.0f + (getParticleCount() % enabled_colors)),
                   getParticleCount() % enabled_colors);
     }
-    if (fps < 100) {
+    if (fps < fps_target * 2) {
       changeSubstepCount(-1);
     }
-    if (fps > 100) {
+    if (fps > fps_target * 2) {
       changeSubstepCount(1);
     }
   }
@@ -228,4 +195,26 @@ void renderText(sf::RenderWindow &window, std::vector<sf::Text> &texts) {
   substep_text.append(std::to_string(getSubstepCount()));
   texts[5].setString(substep_text);
   window.draw(texts[5]);
+}
+
+
+void enableColors(int count){
+  enabled_colors = count;
+}
+
+void enableSpawner(bool enabled){
+  should_spawn_particles = enabled;
+}
+
+
+void setFpsTarget(int target){
+  fps_target = target;
+}
+
+
+void enableReactions(bool enabled){
+  setReactions(enabled);
+}
+void enableInteractions(bool enabled){
+  setInteractions(enabled);
 }

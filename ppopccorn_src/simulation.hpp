@@ -30,10 +30,12 @@ void removeParticle();
 
 void clearParticles();
 
-void toggleInteractions();
+void setInteractions(bool set);
 
 bool getInteractionsState();
 
 void changeSubstepCount(int change);
 
 int getSubstepCount();
+
+void setReactions(bool set);

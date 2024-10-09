@@ -11,12 +11,28 @@
 Particle::Particle(float radius, sf::Vector2f position, sf::Vector2f velocity,
                    uint8_t id) {
   this->velocity = velocity;
-  this->id = id;
+  this->color = id;
   this->position = position;
   this->radius = radius;
   shape = sf::CircleShape(radius);
   shape.setFillColor(particle_colors[id]);
   shape.setOrigin(radius, radius);
+}
+
+
+void Particle::updateReactions(Particle *particle){
+  for (ReactionDef reaction : Particle::reactions){
+    if (reaction.canReact(particle)){
+      reaction.func(particle);
+    }
+  }
+}
+
+void Particle::addReaction(reactionFunc reaction_func, canReactFunc can_react){
+  ReactionDef def{};
+  def.func = reaction_func;
+  def.canReact = can_react;
+  Particle::reactions.push_back(def);
 }
 
 void Particle::update(float time) {
@@ -30,7 +46,7 @@ bool Particle::containsPoint(sf::Vector2f point) {
 }
 
 void Particle::draw(sf::RenderWindow &window) {
-  shape.setFillColor(particle_colors[id]);
+  shape.setFillColor(particle_colors[color]);
   window.draw(shape);
 }
 
@@ -39,9 +55,9 @@ void Particle::touched(uint8_t id) { touching_particles[id] += 1; }
 void Particle::applyInteractionForces(Particle *particle1,
                                       Particle *particle2) {
 
-  switch (particle1->id) {
+  switch (particle1->color) {
   case 0: // red
-    switch (particle2->id) {
+    switch (particle2->color) {
     case 0:
       applyForces(particle1, particle2, Particle::InteractionForcesMap["red->red"]);
       return;
@@ -70,7 +86,7 @@ void Particle::applyInteractionForces(Particle *particle1,
       return;
     }
   case 1: // blue
-    switch (particle2->id){
+    switch (particle2->color){
     case 0:
       applyForces(particle1, particle2, Particle::InteractionForcesMap["green->red"]);
       return;
@@ -99,7 +115,7 @@ void Particle::applyInteractionForces(Particle *particle1,
       return;
     }
   case 2: // green
-    switch (particle2->id) {
+    switch (particle2->color) {
     case 0:
       applyForces(particle1, particle2, Particle::InteractionForcesMap["blue->red"]);
       return;
@@ -128,7 +144,7 @@ void Particle::applyInteractionForces(Particle *particle1,
       return;
     }
   case 3: // yellow
-    switch (particle2->id){
+    switch (particle2->color){
     case 0:
       applyForces(particle1, particle2, Particle::InteractionForcesMap["yellow->red"]);
       return;
@@ -157,7 +173,7 @@ void Particle::applyInteractionForces(Particle *particle1,
       return;
     }
   case 4: // magenta
-    switch (particle2->id) {
+    switch (particle2->color) {
     case 0:
       applyForces(particle1, particle2, Particle::InteractionForcesMap["magenta->red"]);
       return;
@@ -186,7 +202,7 @@ void Particle::applyInteractionForces(Particle *particle1,
       return;
     }
   case 5: // cyan
-    switch (particle2->id) {
+    switch (particle2->color) {
     case 0:
       applyForces(particle1, particle2, Particle::InteractionForcesMap["cyan->red"]);
       return;
@@ -215,7 +231,7 @@ void Particle::applyInteractionForces(Particle *particle1,
       return;
     }
   case 6: // white
-    switch (particle2->id) {
+    switch (particle2->color) {
     case 0:
       applyForces(particle1, particle2, Particle::InteractionForcesMap["white->red"]);
       return;
@@ -244,7 +260,7 @@ void Particle::applyInteractionForces(Particle *particle1,
       return;
     }
   case 7: // orange
-    switch (particle2->id){
+    switch (particle2->color){
     case 0:
       applyForces(particle1, particle2, Particle::InteractionForcesMap["orange->red"]);
       return;

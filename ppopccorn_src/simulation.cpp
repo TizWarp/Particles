@@ -23,7 +23,7 @@ static float bounds_elasticity = 0.25f;
 static Particle *selectedParticle = nullptr;
 static bool render_quadtree = false;
 static bool interactions_enabled = false;
-
+static bool reactions_enabled = false;
 static int quad_max_var = 32;
 
 static QuadTree quad_tree;
@@ -39,8 +39,8 @@ void selectBall(sf::Vector2f pos) {
 
 void unselectBall() { selectedParticle = nullptr; }
 
-void addParticle(float radius, sf::Vector2f position,
-                 sf::Vector2f velocity, uint8_t id) {
+void addParticle(float radius, sf::Vector2f position, sf::Vector2f velocity,
+                 uint8_t id) {
   particles.push_back(Particle(radius, position, velocity, id));
 }
 
@@ -179,7 +179,6 @@ void QuadTree::physicsProcess(float dt) {
     return;
   }
 
-
   for (int index : shared_particles) {
     Particle *particle = &particles[index];
 
@@ -194,9 +193,13 @@ void QuadTree::physicsProcess(float dt) {
       if (interactions_enabled) {
         Particle::applyInteractionForces(particle, particle2);
       }
+      if (reactions_enabled) {
+        Particle::updateReactions(particle);
+      }
 
       if (distance < radi) {
         sf::Vector2f dir = directionTo(particle->position, particle2->position);
+        particle->touched(particle2->color);
         float dif = (radi - distance);
         particle->velocity -=
             (dir *
@@ -262,7 +265,7 @@ void removeParticle() { particles.pop_back(); }
 
 void clearParticles() { particles.clear(); }
 
-void toggleInteractions() { interactions_enabled = !interactions_enabled; }
+void setInteractions(bool set) { interactions_enabled = set;}
 
 bool getInteractionsState() { return interactions_enabled; }
 
@@ -277,3 +280,9 @@ void changeSubstepCount(int change) {
 }
 
 int getSubstepCount() { return SUBSTEPS; }
+
+
+
+void setReactions(bool set){
+  reactions_enabled = set;
+}

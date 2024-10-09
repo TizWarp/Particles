@@ -9,12 +9,24 @@
 #include <string>
 #include <vector>
 
+class Particle;
+
+typedef void(*reactionFunc)(Particle *particle);
+typedef  bool(*canReactFunc)(Particle *particle);
+
+
+struct ReactionDef{
+  reactionFunc func;
+  canReactFunc canReact;
+};
+
+
 class Particle {
 public:
   float radius;
   sf::Vector2f position;
   sf::Vector2f velocity;
-  uint8_t id;
+  uint8_t color;
   int touching_particles[8];
 
   Particle(float radius, sf::Vector2f position,
@@ -27,13 +39,15 @@ public:
   void touched(uint8_t id);
 
   void draw(sf::RenderWindow &window);
+  static void updateReactions(Particle *particle);
 
   static void applyInteractionForces(Particle *particle1, Particle *particle2);
-  static void applyReaction(Particle *Particle);
+
+  static void addReaction(reactionFunc reaction_func, canReactFunc can_react);
 
 private:
   sf::CircleShape shape;
-
+  inline static std::vector<ReactionDef> reactions;
   const sf::Color particle_colors[8] = {
       sf::Color(255, 0, 0),     sf::Color(0, 255, 0),   sf::Color(0, 0, 255),
       sf::Color(255, 255, 0),   sf::Color(255, 0, 255), sf::Color(0, 255, 255),
