@@ -1,6 +1,8 @@
 # Ppopccorn
 ### A Particle life simulator
 
+#### The  folloing might be slightly out of date `default/main.cpp` should have an update walkthrough
+
 ## Installation
 - Make sure SFML and Cmake are on your system
 - Clone repo and run cmake ./
@@ -23,6 +25,7 @@ The First thing you will want to do is set some parameters:
 - `enableInteractions(bool)` enables interaction checking
 - `enableReactions(bool)` enables reaction checking
 
+Now run cmake and then make again to generate your binary. It should be inside the `bin` folder and the binary will have the same name you have the folder in `simulations/`
 
 #### FPS Target and Spawner
 The spawner will continously spawn particles in the cetner of the simulation until the frames drop lower than the fps target. Frames should not go lower than 55 but this simulation is not a light application.
