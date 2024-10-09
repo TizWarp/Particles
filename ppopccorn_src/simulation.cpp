@@ -123,7 +123,7 @@ void QuadTree::regenerate() {
       }
     }
 
-    if (owned_particles.size() > quad_max_var) {
+    if (owned_particles.size() > quad_max_var || shared_particles.size() > quad_max_var * 2){
 
       owned_particles.clear();
       shared_particles.clear();
@@ -189,17 +189,19 @@ void QuadTree::physicsProcess(float dt) {
       Particle *particle2 = &particles[index2];
       float distance = distanceTo(particle->position, particle2->position);
       float radi = particle->radius + particle2->radius;
+      sf::Vector2f dir = directionTo(particle->position, particle2->position);
+
 
       if (interactions_enabled) {
-        Particle::applyInteractionForces(particle, particle2);
+        particle->velocity += dir * (particle->getInteractionForces(particle2->color) / distance);
+      
       }
       if (reactions_enabled) {
         Particle::updateReactions(particle);
       }
 
       if (distance < radi) {
-        sf::Vector2f dir = directionTo(particle->position, particle2->position);
-        particle->touched(particle2->color);
+        particle->touched(particle2);
         float dif = (radi - distance);
         particle->velocity -=
             (dir *
@@ -211,8 +213,8 @@ void QuadTree::physicsProcess(float dt) {
              ((vecMagnitude(particle->velocity) * 0.25f) *
               -((radToDeg(angleBetween(dir, particle->velocity)) - 180.0f) /
                 180.0f)));
-        particle->position -= dir * dif * 0.25f;
-        particle2->position += dir * dif * 0.25f;
+        particle->position -= dir * dif * 0.5f;
+        particle2->position += dir * dif * 0.5f;
       }
     }
   }
@@ -223,24 +225,24 @@ void QuadTree::physicsProcess(float dt) {
       continue;
     }
 
-    if (particle->position.y + particle->radius > (float)bounds_height) {
-      particle->position.y = (float)bounds_height - particle->radius;
-      particle->velocity.y = -particle->velocity.y * bounds_elasticity;
+    if (particle->position.y > (float)bounds_height) {
+      particle->position.y = 0.0f;
+      /*particle->velocity.y = -particle->velocity.y * bounds_elasticity;*/
     }
 
-    if (particle->position.y - particle->radius < 0.0f) {
-      particle->position.y = 0.0f + particle->radius;
-      particle->velocity.y = -particle->velocity.y * bounds_elasticity;
+    if (particle->position.y < 0.0f) {
+      particle->position.y = (float)bounds_height;
+      /*particle->velocity.y = -particle->velocity.y * bounds_elasticity;*/
     }
 
-    if (particle->position.x + particle->radius > (float)bounds_width) {
-      particle->position.x = (float)bounds_width - particle->radius;
-      particle->velocity.x = -particle->velocity.x * bounds_elasticity;
+    if (particle->position.x > (float)bounds_width) {
+      particle->position.x = 0.0f;
+      /*particle->velocity.x = -particle->velocity.x * bounds_elasticity;*/
     }
 
-    if (particle->position.x - particle->radius < 0.0f) {
-      particle->position.x = 0.0f + particle->radius;
-      particle->velocity.x = -particle->velocity.x * bounds_elasticity;
+    if (particle->position.x < 0.0f) {
+      particle->position.x = (float)bounds_width;
+      /*particle->velocity.x = -particle->velocity.x * bounds_elasticity;*/
     }
 
     particle->update(dt);

@@ -21,18 +21,18 @@ Particle::Particle(float radius, sf::Vector2f position, sf::Vector2f velocity,
 
 
 void Particle::updateReactions(Particle *particle){
-  for (ReactionDef reaction : Particle::reactions){
+  for (ReactionDef reaction : Particle::reactions[particle->color]){
     if (reaction.canReact(particle)){
       reaction.func(particle);
     }
   }
 }
 
-void Particle::addReaction(reactionFunc reaction_func, canReactFunc can_react){
+void Particle::addReaction(int target_color, reactionFunc reaction_func, canReactFunc can_react){
   ReactionDef def{};
   def.func = reaction_func;
   def.canReact = can_react;
-  Particle::reactions.push_back(def);
+  Particle::reactions[target_color].push_back(def);
 }
 
 void Particle::update(float time) {
@@ -50,245 +50,10 @@ void Particle::draw(sf::RenderWindow &window) {
   window.draw(shape);
 }
 
-void Particle::touched(uint8_t id) { touching_particles[id] += 1; }
+void Particle::touched(Particle *particle) {
+  touching_particles[particle->color].push_back(particle); 
+}
 
-void Particle::applyInteractionForces(Particle *particle1,
-                                      Particle *particle2) {
-
-  switch (particle1->color) {
-  case 0: // red
-    switch (particle2->color) {
-    case 0:
-      applyForces(particle1, particle2, Particle::InteractionForcesMap["red->red"]);
-      return;
-    case 1:
-      applyForces(particle1, particle2, Particle::InteractionForcesMap["red->green"]);
-      return;
-    case 2:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["red->blue"]);
-      return;
-    case 3:
-      applyForces(particle1, particle2, Particle::InteractionForcesMap["red->yellow"]);
-      return;
-    case 4:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["red->magenta"]);
-      return;
-    case 5:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["red->cyan"]);
-      return;
-    case 6:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["red->white"]);
-      return;
-    case 7:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["red->orange"]);
-      return;
-    default:
-      return;
-    }
-  case 1: // blue
-    switch (particle2->color){
-    case 0:
-      applyForces(particle1, particle2, Particle::InteractionForcesMap["green->red"]);
-      return;
-    case 1:
-      applyForces(particle1, particle2, Particle::InteractionForcesMap["green->green"]);
-      return;
-    case 2:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["green->blue"]);
-      return;
-    case 3:
-      applyForces(particle1, particle2, Particle::InteractionForcesMap["green->yellow"]);
-      return;
-    case 4:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["green->magenta"]);
-      return;
-    case 5:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["green->cyan"]);
-      return;
-    case 6:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["green->white"]);
-      return;
-    case 7:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["green->orange"]);
-      return;
-    default:
-      return;
-    }
-  case 2: // green
-    switch (particle2->color) {
-    case 0:
-      applyForces(particle1, particle2, Particle::InteractionForcesMap["blue->red"]);
-      return;
-    case 1:
-      applyForces(particle1, particle2, Particle::InteractionForcesMap["blue->green"]);
-      return;
-    case 2:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["blue->blue"]);
-      return;
-    case 3:
-      applyForces(particle1, particle2, Particle::InteractionForcesMap["blue->yellow"]);
-      return;
-    case 4:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["blue->magenta"]);
-      return;
-    case 5:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["blue->cyan"]);
-      return;
-    case 6:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["blue->white"]);
-      return;
-    case 7:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["blue->orange"]);
-      return;
-    default:
-      return;
-    }
-  case 3: // yellow
-    switch (particle2->color){
-    case 0:
-      applyForces(particle1, particle2, Particle::InteractionForcesMap["yellow->red"]);
-      return;
-    case 1:
-      applyForces(particle1, particle2, Particle::InteractionForcesMap["yellow->green"]);
-      return;
-    case 2:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["yellow->blue"]);
-      return;
-    case 3:
-      applyForces(particle1, particle2, Particle::InteractionForcesMap["yellow->yellow"]);
-      return;
-    case 4:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["yellow->magenta"]);
-      return;
-    case 5:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["yellow->cyan"]);
-      return;
-    case 6:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["yellow->white"]);
-      return;
-    case 7:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["yellow->orange"]);
-      return;
-    default:
-      return;
-    }
-  case 4: // magenta
-    switch (particle2->color) {
-    case 0:
-      applyForces(particle1, particle2, Particle::InteractionForcesMap["magenta->red"]);
-      return;
-    case 1:
-      applyForces(particle1, particle2, Particle::InteractionForcesMap["magenta->green"]);
-      return;
-    case 2:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["magenta->blue"]);
-      return;
-    case 3:
-      applyForces(particle1, particle2, Particle::InteractionForcesMap["magenta->yellow"]);
-      return;
-    case 4:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["magenta->magenta"]);
-      return;
-    case 5:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["magenta->cyan"]);
-      return;
-    case 6:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["magenta->white"]);
-      return;
-    case 7:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["magenta->orange"]);
-      return;
-    default:
-      return;
-    }
-  case 5: // cyan
-    switch (particle2->color) {
-    case 0:
-      applyForces(particle1, particle2, Particle::InteractionForcesMap["cyan->red"]);
-      return;
-    case 1:
-      applyForces(particle1, particle2, Particle::InteractionForcesMap["cyan->green"]);
-      return;
-    case 2:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["cyan->blue"]);
-      return;
-    case 3:
-      applyForces(particle1, particle2, Particle::InteractionForcesMap["cyan->yellow"]);
-      return;
-    case 4:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["cyan->magenta"]);
-      return;
-    case 5:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["cyan->cyan"]);
-      return;
-    case 6:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["cyan->white"]);
-      return;
-    case 7:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["cyan->orange"]);
-      return;
-    default:
-      return;
-    }
-  case 6: // white
-    switch (particle2->color) {
-    case 0:
-      applyForces(particle1, particle2, Particle::InteractionForcesMap["white->red"]);
-      return;
-    case 1:
-      applyForces(particle1, particle2, Particle::InteractionForcesMap["white->green"]);
-      return;
-    case 2:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["white->blue"]);
-      return;
-    case 3:
-      applyForces(particle1, particle2, Particle::InteractionForcesMap["white->yellow"]);
-      return;
-    case 4:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["white->magenta"]);
-      return;
-    case 5:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["white->cyan"]);
-      return;
-    case 6:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["white->white"]);
-      return;
-    case 7:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["white->orange"]);
-      return;
-    default:
-      return;
-    }
-  case 7: // orange
-    switch (particle2->color){
-    case 0:
-      applyForces(particle1, particle2, Particle::InteractionForcesMap["orange->red"]);
-      return;
-    case 1:
-      applyForces(particle1, particle2, Particle::InteractionForcesMap["orange->green"]);
-      return;
-    case 2:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["orange->blue"]);
-      return;
-    case 3:
-      applyForces(particle1, particle2, Particle::InteractionForcesMap["orange->yellow"]);
-      return;
-    case 4:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["orange->magenta"]);
-      return;
-    case 5:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["orange->cyan"]);
-      return;
-    case 6:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["orange->white"]);
-      return;
-    case 7:
-      applyForces(particle1, particle2,Particle::InteractionForcesMap["orange->orange"]);
-      return;
-    default:
-      return;
-    }
-  default:
-    return;
-  }
+float Particle::getInteractionForces(int color){
+  return Particle::interactionForces[this->color + (color * 8)];
 }

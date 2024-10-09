@@ -39,3 +39,4 @@ void changeSubstepCount(int change);
 int getSubstepCount();
 
 void setReactions(bool set);
+

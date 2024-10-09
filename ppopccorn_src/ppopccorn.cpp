@@ -36,6 +36,7 @@ static std::vector<sf::Text> texts;
 static int enabled_colors = 1;
 static bool should_spawn_particles = false;
 static bool show_debug_ingo = false;
+static int particle_max = 10000;
 
 static int fps_target = 60;
 
@@ -114,6 +115,14 @@ int main(int argc, char *argv[]) {
         mouse_pos.x = (float)event.mouseMove.x;
         mouse_pos.y = (float)event.mouseMove.y;
       }
+      if (event.type == sf::Event::KeyPressed){
+        if (event.key.code == sf::Keyboard::Q){
+          toggleQuadTree();
+        }
+        if (event.key.code == sf::Keyboard::D){
+          show_debug_ingo = !show_debug_ingo;
+        }
+      }
     }
 
     float deltaTime = deltaClock.restart().asSeconds();
@@ -138,11 +147,14 @@ int main(int argc, char *argv[]) {
         sf::Vector2f((float)window.getSize().x, (float)window.getSize().y);
 
     spawn_timer = (spawn_timer += 1) % 5;
-    if (fps > fps_target && spawn_timer == 0 && should_spawn_particles) {
+    if (fps > fps_target && spawn_timer == 0 && should_spawn_particles && getParticleCount() < particle_max) {
       addParticle(5.0f, spawn_location / 2.0f,
                   sf::Vector2f(50.0f + (getParticleCount() % enabled_colors),
                                50.0f + (getParticleCount() % enabled_colors)),
                   getParticleCount() % enabled_colors);
+    }
+    if (fps < fps_target){
+      should_spawn_particles = false;
     }
     if (fps < fps_target * 2) {
       changeSubstepCount(-1);
@@ -167,34 +179,6 @@ void renderText(sf::RenderWindow &window, std::vector<sf::Text> &texts) {
   particle_count_text.append(std::to_string(getParticleCount()));
   texts[1].setString(particle_count_text);
   window.draw(texts[1]);
-
-  std::string enabled_colors_text = "Color Count : ";
-  enabled_colors_text.append(std::to_string(enabled_colors));
-  texts[2].setString(enabled_colors_text);
-  window.draw(texts[2]);
-
-  std::string spawning_text = "Particle Spawner : ";
-  if (should_spawn_particles) {
-    spawning_text.append("On");
-  } else {
-    spawning_text.append("Off");
-  }
-  texts[3].setString(spawning_text);
-  window.draw(texts[3]);
-
-  std::string interactions_text = "Interactions : ";
-  if (getInteractionsState()) {
-    interactions_text.append("On");
-  } else {
-    interactions_text.append("Off");
-  }
-  texts[4].setString(interactions_text);
-  window.draw(texts[4]);
-
-  std::string substep_text = "Substeps : ";
-  substep_text.append(std::to_string(getSubstepCount()));
-  texts[5].setString(substep_text);
-  window.draw(texts[5]);
 }
 
 
@@ -217,4 +201,14 @@ void enableReactions(bool enabled){
 }
 void enableInteractions(bool enabled){
   setInteractions(enabled);
+}
+
+
+void setParticleMax(int max){
+  particle_max = max;
+}
+
+
+float getVecMagnitude(sf::Vector2f vec){
+  return vecMagnitude(vec);
 }
