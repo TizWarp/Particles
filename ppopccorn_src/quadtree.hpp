@@ -1,28 +1,27 @@
+#pragma once
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Window/Keyboard.hpp>
 #include <vector>
+#include "defines.hpp"
+#include "particle.hpp"
 class QuadTree{
   public:
-    const int FIRST_PARTICLE_MAX = 8;
-    sf::Vector2f upper_bounds;
-    sf::Vector2f lower_bounds;
-    std::vector<int> owned_particles;
-    std::vector<int> shared_particles;
-    int particle_max;
+    bool is_root;
+    Bounds bounds;
+    std::vector<int> quad_particles;
 
-    QuadTree(sf::Vector2f upper_bounds, sf::Vector2f lower_bounds, int particle_max = 8);
+    QuadTree(Bounds bounds, bool is_root = false);
 
     QuadTree(){};
 
-    void resize(sf::Vector2f upper_bounds, sf::Vector2f lower_bounds);
+    void resize(Bounds new_bounds);
 
     void clear();
-    void regenerate();
+    void generate(int particle_max);
     void physicsProcess(float dt);
-    void render(sf::RenderWindow &window);
-    bool isSubdivied();
+    void render(Window &window);
 
   private:
     std::vector<QuadTree> children;

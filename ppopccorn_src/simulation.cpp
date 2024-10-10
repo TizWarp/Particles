@@ -1,290 +1,281 @@
 #include "simulation.hpp"
+#include "defines.hpp"
+#include "imgui-SFML.h"
+#include "imgui.h"
+#include "imgui_internal.h"
+#include "math.hpp"
 #include "particle.hpp"
+#include "ppopccorn.hpp"
 #include "quadtree.hpp"
-#include "utils.hpp"
+#include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/Graphics/Text.hpp>
+#include <SFML/Main.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <SFML/Window/Event.hpp>
 #include <SFML/Window/Keyboard.hpp>
+#include <SFML/Window/Mouse.hpp>
+#include <SFML/Window/VideoMode.hpp>
+#include <SFML/Window/WindowStyle.hpp>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <thread>
+#include <format>
+#include <string>
 #include <vector>
+const int SUBSTEPS = 8;
 
-int SUBSTEPS = 8;
+void Simulation::init() {
+  addParticle(5.0f, Vector2(50.0f, 50.0f), sf::Vector2(50.0f, 50.0f), 0);
+  addParticle(5.0f, Vector2(-50.0f, -50.0f), sf::Vector2(50.0f, 50.0f), 0);
+  this->window.create(sf::VideoMode(600, 400), "Ppopccorn",
+                      sf::Style::Close | sf::Style::Resize);
+  this->bounds = Bounds{Vector2(0.0f, 0.0f), Vector2(600.0f, 400.0f)};
+  this->particle_max = 100;
+  this->loop_bounds = true;
+  this->quad_tree.resize(bounds);
+  this->font.loadFromFile("./res/Symbola.otf");
 
-static bool gravity_enabled = false;
-static std::vector<Particle> particles;
-static int bounds_height = 400;
-static int bounds_width = 600;
-static float bounds_elasticity = 0.25f;
-static Particle *selectedParticle = nullptr;
-static bool render_quadtree = false;
-static bool interactions_enabled = false;
-static bool reactions_enabled = false;
-static int quad_max_var = 32;
+  this->physics_paused = false;
+  this->draw_quad_tree = false;
 
-static QuadTree quad_tree;
+  font.loadFromFile("./res/Symbola.otf");
 
-void selectBall(sf::Vector2f pos) {
-  for (int index = 0; index < particles.size(); index++) {
-    Particle *particle = &particles[index];
-    if (particle->containsPoint(pos)) {
-      selectedParticle = particle;
-    }
+  Simulation::interactions_enabled = false;
+  Simulation::reactions_enabled = false;
+
+  ImGui::SFML::Init(window, true);
+}
+
+void Simulation::addParticle(float radius, Vector2 position, Vector2 velocity,
+                             uint8_t id) {
+  Simulation::particles.push_back(Particle(radius, position, velocity, id));
+}
+
+void Simulation::physicsUpdate(float dt) {
+  if (Simulation::particles.empty()) {
+    return;
   }
-}
-
-void unselectBall() { selectedParticle = nullptr; }
-
-void addParticle(float radius, sf::Vector2f position, sf::Vector2f velocity,
-                 uint8_t id) {
-  particles.push_back(Particle(radius, position, velocity, id));
-}
-
-int getParticleCount() { return particles.size(); }
-
-void physicsUpdate(float dt, sf::RenderWindow &window) {
   float substep_time = dt / SUBSTEPS;
 
-  if (selectedParticle != nullptr) {
-    float distance = distanceTo(selectedParticle->position, getMousePos());
-    sf::Vector2f dir = directionTo(selectedParticle->position, getMousePos());
-    selectedParticle->velocity += dir * distance * dt * 100.0f;
-  }
-
-  sf::Vector2f heighest_particle = sf::Vector2f(0.0f, 0.0f);
-  sf::Vector2f lowest_particle =
-      sf::Vector2f((float)bounds_width, (float)bounds_height);
-  for (int particle_index = 0; particle_index < particles.size();
+  Vector2 heighest_particle = bounds.lower;
+  Vector2 lowest_particle = bounds.upper;
+  for (int particle_index = 0; particle_index < Simulation::particles.size();
        particle_index++) {
     Particle *particle = &particles[particle_index];
-    if (particle->position.x < lowest_particle.x) {
+    if (particle->position.x > lowest_particle.x) {
       lowest_particle.x = particle->position.x;
     }
-    if (particle->position.y < lowest_particle.y) {
+    if (particle->position.y > lowest_particle.y) {
       lowest_particle.y = particle->position.y;
     }
-    if (particle->position.x > heighest_particle.x) {
+    if (particle->position.x < heighest_particle.x) {
       heighest_particle.x = particle->position.x;
     }
-    if (particle->position.y > heighest_particle.y) {
+    if (particle->position.y < heighest_particle.y) {
       heighest_particle.y = particle->position.y;
     }
   }
-  if (particles.size() < 2 || lowest_particle == heighest_particle) {
-    heighest_particle = lowest_particle;
-    lowest_particle = sf::Vector2f(0.0f, 0.0f);
-    quad_tree.owned_particles.push_back(0);
-  }
 
-  /*lowest_particle = lowest_particle - (lowest_particle * 0.50f);*/
-  /*heighest_particle = heighest_particle * 1.50f;*/
+  /*lowest_particle = lowest_particle - (lowest_particle * 0.25f);*/
+  /*heighest_particle = heighest_particle * 1.25f;*/
 
   quad_tree.clear();
-  quad_tree.resize(heighest_particle, lowest_particle);
-  quad_tree.regenerate();
-
-  if (render_quadtree) {
-    quad_tree.render(window);
-  }
+  quad_tree.resize(Bounds{heighest_particle, lowest_particle});
+  quad_tree.generate(4);
 
   for (int sub_step = 0; sub_step < SUBSTEPS; sub_step++) {
-
     quad_tree.physicsProcess(substep_time);
+    for (int index = 0; index < Simulation::particles.size(); index++) {
+      Particle *particle = &Simulation::particles[index];
+      particle->update(substep_time);
+      if (this->loop_bounds) {
+        loopBoundsCheck(particle);
+      } else {
+        bounceBoundsCheck(particle);
+      }
+      Vector2 dir;
+      float distance;
+      switch (Simulation::mouseState) {
+      case PULL:
+        dir = directionTo(particle->position, Simulation::mouse_pos);
+        distance = distanceTo(particle->position, Simulation::mouse_pos);
+        particle->velocity += 10.0f * (dir / distance);
+        break;
+      case PUSH:
+        dir = directionTo(particle->position, Simulation::mouse_pos);
+        distance = distanceTo(particle->position, Simulation::mouse_pos);
+        particle->velocity -= 10.0f * (dir / distance);
+        break;
+      case NONE:
+        break;
+      }
+    }
   }
 }
 
-void renderPass(sf::RenderWindow &window) {
+void Simulation::renderPass() {
+  if (draw_quad_tree) {
+    quad_tree.render(window);
+  }
   for (int index = 0; index < particles.size(); index++) {
     Particle *particle = &particles[index];
     particle->draw(window);
   }
 }
 
-void setBounds(int width, int height) {
-  bounds_height = height;
-  bounds_width = width;
-}
+void Simulation::clearParticles() { Simulation::particles.clear(); }
 
-void QuadTree::regenerate() {
-
-  owned_particles.clear();
-  for (int index = 0; index < particles.size(); index++) {
-    Particle *particle = &particles[index];
-
-    if (isParticlePartilWithin(particle, upper_bounds, lower_bounds)) {
-      shared_particles.push_back(index);
-      if (doesBoundContainPoint(particle->position, upper_bounds,
-                                lower_bounds)) {
-        owned_particles.push_back(index);
-      }
-    }
-
-    if (owned_particles.size() > quad_max_var || shared_particles.size() > quad_max_var * 2){
-
-      owned_particles.clear();
-      shared_particles.clear();
-
-      sf::Vector2f top_left = lower_bounds;
-      sf::Vector2f bottom_right = upper_bounds;
-      sf::Vector2f center =
-          lower_bounds + ((upper_bounds - lower_bounds) / 2.0f);
-      sf::Vector2f bottom_center = sf::Vector2f(center.x, upper_bounds.y);
-      sf::Vector2f top_center = sf::Vector2f(center.x, lower_bounds.y);
-      sf::Vector2f left_center = sf::Vector2f(lower_bounds.x, center.y);
-      sf::Vector2f right_center = sf::Vector2f(upper_bounds.x, center.y);
-
-      QuadTree child1 = QuadTree(center, top_left, particle_max * 2);
-      QuadTree child2 =
-          QuadTree(bottom_right, center, particle_max * 2); // problem child
-      QuadTree child3 = QuadTree(bottom_center, left_center, particle_max * 2);
-      QuadTree child4 = QuadTree(right_center, top_center, particle_max * 2);
-
-      child1.regenerate();
-      child2.regenerate();
-      child3.regenerate();
-      child4.regenerate();
-
-      children.push_back(child1);
-      children.push_back(child2);
-      children.push_back(child3);
-      children.push_back(child4);
-
-      return;
-    }
+void Simulation::loopBoundsCheck(Particle *particle) {
+  if (particle->position.x > bounds.lower.x) {
+    particle->position.x = bounds.upper.x;
+  }
+  if (particle->position.x < bounds.upper.x) {
+    particle->position.x = bounds.lower.x;
+  }
+  if (particle->position.y > bounds.lower.y) {
+    particle->position.y = bounds.upper.y;
+  }
+  if (particle->position.y < bounds.upper.y) {
+    particle->position.y = bounds.lower.y;
   }
 }
 
-void QuadTree::physicsProcess(float dt) {
-  if (owned_particles.empty()) {
-    if (particle_max == QuadTree::FIRST_PARTICLE_MAX) {
-      std::thread thread1(&QuadTree::physicsProcess, &children[0], dt);
-      std::thread thread2(&QuadTree::physicsProcess, &children[0], dt);
-      std::thread thread3(&QuadTree::physicsProcess, &children[0], dt);
-      std::thread thread4(&QuadTree::physicsProcess, &children[0], dt);
-
-      thread1.join();
-      thread2.join();
-      thread3.join();
-      thread4.join();
-
-    } else {
-      for (QuadTree child : children) {
-        child.physicsProcess(dt);
-      }
-    }
-    return;
+void Simulation::bounceBoundsCheck(Particle *paticle) {
+  if (paticle->position.x + paticle->radius > bounds.lower.x) {
+    paticle->position.x = bounds.lower.x - paticle->radius;
+    paticle->velocity.x = -paticle->velocity.x * 0.25f;
   }
-
-  for (int index : shared_particles) {
-    Particle *particle = &particles[index];
-
-    for (int index2 : shared_particles) {
-      if (index == index2) {
-        continue;
-      }
-      Particle *particle2 = &particles[index2];
-      float distance = distanceTo(particle->position, particle2->position);
-      float radi = particle->radius + particle2->radius;
-      sf::Vector2f dir = directionTo(particle->position, particle2->position);
-
-
-      if (interactions_enabled) {
-        particle->velocity += dir * (particle->getInteractionForces(particle2->color) / distance);
-      
-      }
-      if (reactions_enabled) {
-        Particle::updateReactions(particle);
-      }
-
-      if (distance < radi) {
-        particle->touched(particle2);
-        float dif = (radi - distance);
-        particle->velocity -=
-            (dir *
-             ((vecMagnitude(particle2->velocity) * 0.125f) *
-              -((radToDeg(angleBetween(dir, particle2->velocity)) - 180.0f) /
-                180.0f)));
-        particle2->velocity +=
-            (dir *
-             ((vecMagnitude(particle->velocity) * 0.25f) *
-              -((radToDeg(angleBetween(dir, particle->velocity)) - 180.0f) /
-                180.0f)));
-        particle->position -= dir * dif * 0.5f;
-        particle2->position += dir * dif * 0.5f;
-      }
-    }
+  if (paticle->position.x - paticle->radius < bounds.upper.x) {
+    paticle->position.x = bounds.upper.x + paticle->radius;
+    paticle->velocity.x = -paticle->velocity.x * 0.25f;
   }
+  if (paticle->position.y + paticle->radius > bounds.lower.y) {
+    paticle->position.y = bounds.lower.y - paticle->radius;
+    paticle->velocity.y = -paticle->velocity.y * 0.25f;
+  }
+  if (paticle->position.y - paticle->radius < bounds.upper.y) {
+    paticle->position.y = bounds.upper.y + paticle->radius;
+    paticle->velocity.y = -paticle->velocity.y * 0.25f;
+  }
+}
 
-  for (int index : owned_particles) {
-    Particle *particle = &particles[index];
-    if (particle->velocity == sf::Vector2f(0.0f, 0.0f)) {
-      continue;
-    }
+void Simulation::run() {
 
-    if (particle->position.y > (float)bounds_height) {
-      particle->position.y = 0.0f;
-      /*particle->velocity.y = -particle->velocity.y * bounds_elasticity;*/
-    }
+  int spawn_timer = 0;
+  window.setVerticalSyncEnabled(true);
 
-    if (particle->position.y < 0.0f) {
-      particle->position.y = (float)bounds_height;
-      /*particle->velocity.y = -particle->velocity.y * bounds_elasticity;*/
-    }
-
-    if (particle->position.x > (float)bounds_width) {
-      particle->position.x = 0.0f;
-      /*particle->velocity.x = -particle->velocity.x * bounds_elasticity;*/
-    }
-
-    if (particle->position.x < 0.0f) {
-      particle->position.x = (float)bounds_width;
-      /*particle->velocity.x = -particle->velocity.x * bounds_elasticity;*/
-    }
-
-    particle->update(dt);
-    if (gravity_enabled) {
-      particle->velocity.y += 900.0f * dt;
-      if (particle->velocity.y > 500.0f) {
-        particle->velocity.y = 500.0f;
+  while (window.isOpen()) {
+    sf::Event event;
+    while (window.pollEvent(event)) {
+      ImGui::SFML::ProcessEvent(window, event);
+      if (event.type == sf::Event::Closed) {
+        window.close();
       }
+      if (event.type == sf::Event::Resized) {
+        sf::View view(
+            Vector2((float)event.size.width / 2, (float)event.size.height / 2),
+            Vector2((float)event.size.width, (float)event.size.height));
+        window.setView(view);
+        bounds.upper = Vector2(0.0f, 0.0f);
+        bounds.lower = Vector2((int)event.size.width, (int)event.size.height);
+      }
+      if (event.type == sf::Event::MouseMoved) {
+        Simulation::mouse_pos.x = (float)event.mouseMove.x;
+        Simulation::mouse_pos.y = (float)event.mouseMove.y;
+      }
+      if (event.type == sf::Event::MouseButtonReleased) {
+        Simulation::mouseState = NONE;
+      }
+      if (event.type == sf::Event::MouseButtonPressed) {
+        if (event.mouseButton.button == sf::Mouse::Button::Left) {
+          Simulation::mouseState = PUSH;
+        }
+        if (event.mouseButton.button == sf::Mouse::Button::Right) {
+          Simulation::mouseState = PULL;
+        }
+      }
+      if (event.type == sf::Event::KeyPressed) {
+        if (event.key.code == sf::Keyboard::Q) {
+          draw_quad_tree = !draw_quad_tree;
+        }
+        if (event.key.code == sf::Keyboard::Space) {
+          physics_paused = !physics_paused;
+        }
+      }
+    }
+
+    sf::Time deltaTime = deltaClock.restart();
+    ImGui::SFML::Update(window, deltaTime);
+
+    renderUI();
+
+    window.clear(sf::Color::Black);
+
+    if (!physics_paused) {
+      physicsUpdate(deltaTime.asSeconds());
+    }
+    renderPass();
+
+    fps = int(1.0f / deltaTime.asSeconds());
+
+    ImGui::SFML::Render(window);
+    window.display();
+
+    Vector2 spawn_location =
+        Vector2((float)window.getSize().x, (float)window.getSize().y);
+    spawn_timer = (spawn_timer += 1) % 120;
+    if (Simulation::particles.size() < particle_max && !physics_paused) {
+      addParticle(5.0f, bounds.lower / 2.0f, sf::Vector2(50.0f, 50.0f), Simulation::particles.size() % 8);
+    };
+    if (Simulation::particles.size() > particle_max){
+      Simulation::particles.pop_back();
     }
   }
 }
 
-void toggleGravity() { gravity_enabled = !gravity_enabled; }
-
-void toggleQuadTree() { render_quadtree = !render_quadtree; }
-
-void changeQuadCapacity(int change) { quad_max_var += change; }
-
-int getQuadCapacity() { return quad_max_var; }
-
-void removeParticle() { particles.pop_back(); }
-
-void clearParticles() { particles.clear(); }
-
-void setInteractions(bool set) { interactions_enabled = set;}
-
-bool getInteractionsState() { return interactions_enabled; }
-
-void changeSubstepCount(int change) {
-  SUBSTEPS += change;
-  if (SUBSTEPS < 8) {
-    SUBSTEPS = 8;
+void Simulation::renderUI() {
+  ImGui::Begin("Simulation");
+  ImGui::Text("FPS : %d", fps);
+  ImGui::Text("Particle Count : %zu", particles.size());
+  ImGui::SliderInt("Particle Max", &particle_max, 0, 10000, "%d");
+  ImGui::Checkbox("Enable Interactions", &Simulation::interactions_enabled);
+  ImGui::Checkbox("Enable Reactions", &Simulation::reactions_enabled);
+  ImGui::Checkbox("Loop Edge", &loop_bounds);
+  ImGui::Checkbox("Pause", &physics_paused);
+  if (ImGui::CollapsingHeader("Particle Colors")) {
+    ImGui::ColorEdit4("Particle 1 Color", Particle::particle_colors[0].data(),
+                      ImGuiColorEditFlags_Float);
+    ImGui::ColorEdit4("Particle 2 Color", Particle::particle_colors[1].data(),
+                      ImGuiColorEditFlags_Float);
+    ImGui::ColorEdit4("Particle 3 Color", Particle::particle_colors[2].data(),
+                      ImGuiColorEditFlags_Float);
+    ImGui::ColorEdit4("Particle 4 Color", Particle::particle_colors[3].data(),
+                      ImGuiColorEditFlags_Float);
+    ImGui::ColorEdit4("Particle 5 Color", Particle::particle_colors[4].data(),
+                      ImGuiColorEditFlags_Float);
+    ImGui::ColorEdit4("Particle 6 Color", Particle::particle_colors[5].data(),
+                      ImGuiColorEditFlags_Float);
+    ImGui::ColorEdit4("Particle 7 Color", Particle::particle_colors[6].data(),
+                      ImGuiColorEditFlags_Float);
+    ImGui::ColorEdit4("Particle 8 Color", Particle::particle_colors[7].data(),
+                      ImGuiColorEditFlags_Float);
   }
-  if (SUBSTEPS > 100) {
-    SUBSTEPS = 100;
+  if (ImGui::CollapsingHeader("Particle Interactions")) {
+    for (int particle_type = 0; particle_type < 8; particle_type++) {
+      if (ImGui::TreeNode(std::to_string(particle_type).c_str(), "Particle %d Interactions", particle_type)){
+        for (int other_particle = 0; other_particle < 8; other_particle++) {
+          std::string particle_str = "Particle ";
+          ImGui::SliderFloat(
+             particle_str.append(std::to_string(other_particle)).c_str(),
+              Particle::getInteractionForcesPtr(particle_type, other_particle),
+              -25.0f, 25.0f);
+        }
+        ImGui::TreePop();
+      }
+    }
   }
-}
-
-int getSubstepCount() { return SUBSTEPS; }
-
-
-
-void setReactions(bool set){
-  reactions_enabled = set;
+  ImGui::End();
 }

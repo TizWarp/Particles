@@ -1,5 +1,5 @@
 #include "particle.hpp"
-#include "utils.hpp"
+#include "math.hpp"
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/System/Vector2.hpp>
@@ -7,15 +7,16 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include "defines.hpp"
 
-Particle::Particle(float radius, sf::Vector2f position, sf::Vector2f velocity,
+Particle::Particle(float radius, Vector2 position, Vector2 velocity,
                    uint8_t id) {
   this->velocity = velocity;
   this->color = id;
   this->position = position;
   this->radius = radius;
   shape = sf::CircleShape(radius);
-  shape.setFillColor(particle_colors[id]);
+  shape.setFillColor(particle_colors[id].toIntColor());
   shape.setOrigin(radius, radius);
 }
 
@@ -36,17 +37,18 @@ void Particle::addReaction(int target_color, reactionFunc reaction_func, canReac
 }
 
 void Particle::update(float time) {
+  life += 1;
   position += (velocity * time);
-  shape.setPosition(position);
   memset(touching_particles, 0, sizeof(touching_particles));
 }
 
-bool Particle::containsPoint(sf::Vector2f point) {
+bool Particle::containsPoint(Vector2 point) {
   return distanceTo(position, point) < radius;
 }
 
 void Particle::draw(sf::RenderWindow &window) {
-  shape.setFillColor(particle_colors[color]);
+  shape.setFillColor(particle_colors[color].toIntColor());
+  shape.setPosition(position);
   window.draw(shape);
 }
 
@@ -56,4 +58,9 @@ void Particle::touched(Particle *particle) {
 
 float Particle::getInteractionForces(int color){
   return Particle::interactionForces[this->color + (color * 8)];
+}
+
+
+float* Particle::getInteractionForcesPtr(int type1, int type2){
+  return &Particle::interactionForces[type1 + (type2 * 8)];
 }
