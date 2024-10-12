@@ -11,8 +11,6 @@
 #define RAD_TO_DEG 180.0f/PI
 #define DEG_TO_RAD PI/180.0f
 
-// a fun comment
-
 typedef sf::Vector2f Vector2;
 typedef uint8_t ParticleType;
 typedef sf::RenderWindow Window;
