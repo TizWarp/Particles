@@ -24,8 +24,9 @@ class Particle {
 public:
   float radius;
   Vector2 position;
+  Vector2 last_position;
   Vector2 velocity;
-  uint8_t color;
+  uint8_t type;
   uint64_t life;
   std::vector<Particle *> touching_particles[8];
 
@@ -38,7 +39,8 @@ public:
 
   void touched(Particle *particle);
 
-  void draw(sf::RenderWindow &window);
+  void renderInspector();
+
   static void updateReactions(Particle *particle);
 
   float getInteractionForces(int color);
@@ -55,7 +57,4 @@ public:
       Colorf(1.0f, 1.0f, 1.0f), Colorf(1.0f, 0.5f, 0.0f),
   };
   inline static float interactionForces[8 * 8] = {};
-
-private:
-  sf::CircleShape shape;
 };

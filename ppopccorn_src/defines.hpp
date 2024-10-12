@@ -1,5 +1,6 @@
 #pragma once
 
+#include "imgui.h"
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/System/Vector2.hpp>
@@ -37,6 +38,10 @@ class Colorf{
 
     sf::Color toIntColor(){
       return sf::Color((int)255.0f * r, (int)255.0f * g, (int)255.0f * b, (int)255.0f * a);
+    }
+
+    ImVec4 toImColor(){
+      return ImVec4(r, g, b, a);
     }
 };
 

@@ -30,6 +30,12 @@
   "output": "CMakeFiles/Ppopccorn.dir/ppopccorn_src/simulation.cpp.o"
 },
 {
+  "directory": "/home/tizwarp/Projects/Ppopccorn",
+  "command": "/usr/bin/c++ -DIMGUI_USER_CONFIG=\\\"imconfig-SFML.h\\\" -I/home/tizwarp/Projects/Ppopccorn/./dependencies -I/home/tizwarp/Projects/Ppopccorn/_deps/imgui-src -I/home/tizwarp/Projects/Ppopccorn/_deps/imgui-sfml-src -I/home/tizwarp/Projects/Ppopccorn/_deps/sfml-src/include  -o CMakeFiles/Ppopccorn.dir/ppopccorn_src/threads.cpp.o -c /home/tizwarp/Projects/Ppopccorn/ppopccorn_src/threads.cpp",
+  "file": "/home/tizwarp/Projects/Ppopccorn/ppopccorn_src/threads.cpp",
+  "output": "CMakeFiles/Ppopccorn.dir/ppopccorn_src/threads.cpp.o"
+},
+{
   "directory": "/home/tizwarp/Projects/Ppopccorn/_deps/sfml-build/src/SFML/System",
   "command": "/usr/bin/c++ -DSFML_SYSTEM_EXPORTS -I/home/tizwarp/Projects/Ppopccorn/_deps/sfml-src/include -I/home/tizwarp/Projects/Ppopccorn/_deps/sfml-src/src -fPIC -fvisibility=hidden  -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wcast-align -Wunused -Woverloaded-virtual -Wconversion -Wsign-conversion -Wdouble-promotion -Wformat=2 -Wnull-dereference -Wold-style-cast -Wpedantic -Wmisleading-indentation -Wduplicated-cond -Wlogical-op -Wduplicated-branches -o CMakeFiles/sfml-system.dir/Clock.cpp.o -c /home/tizwarp/Projects/Ppopccorn/_deps/sfml-src/src/SFML/System/Clock.cpp",
   "file": "/home/tizwarp/Projects/Ppopccorn/_deps/sfml-src/src/SFML/System/Clock.cpp",

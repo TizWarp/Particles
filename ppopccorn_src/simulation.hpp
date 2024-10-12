@@ -1,9 +1,12 @@
 #pragma once
 
+#include "SFML/Graphics/RenderStates.hpp"
+#include "SFML/Graphics/VertexArray.hpp"
 #include "defines.hpp"
 #include "particle.hpp"
 #include "ppopccorn.hpp"
 #include "quadtree.hpp"
+#include "threads.hpp"
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
@@ -26,7 +29,10 @@ public:
   inline static bool interactions_enabled = false;
   inline static MouseState mouseState = NONE;
   inline static Vector2 mouse_pos = Vector2(0.0f, 0.0f);
+  inline static ThreadPool thread_pool;
 
+  sf::VertexArray object_va;
+  Particle *selected_particle = nullptr;
   bool physics_paused;
   bool draw_quad_tree;
   sf::Font font;
@@ -37,6 +43,10 @@ public:
   sf::Clock deltaClock;
   int particle_max;
   int fps;
+  int initial_particle_quad_max;
+  sf::RenderStates states;
+
+
 
   Simulation(){};
 
@@ -52,5 +62,6 @@ public:
   void renderUI();
   Vector2 getMousePos();
   MouseState getMouseState();
+  void updateVA();
   void run();
 };

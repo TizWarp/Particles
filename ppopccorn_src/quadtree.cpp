@@ -8,6 +8,7 @@
 #include <SFML/System/Vector2.hpp>
 #include <cstdio>
 #include <cstdlib>
+#include <functional>
 #include <thread>
 
 QuadTree::QuadTree(Bounds bounds, bool is_root) {
@@ -42,7 +43,7 @@ void QuadTree::clear() {
 void QuadTree::resize(Bounds new_bounds) { this->bounds = new_bounds; }
 
 void QuadTree::generate(int particle_max) {
-  if (Simulation::particles.empty()){
+  if (Simulation::particles.empty()) {
     return;
   }
   for (int index = 0; index < Simulation::particles.size(); index++) {
@@ -64,16 +65,15 @@ void QuadTree::generate(int particle_max) {
       Vector2 left_center = Vector2(bounds.upper.x, center.y);
       Vector2 right_center = Vector2(bounds.lower.x, center.y);
 
-      
       QuadTree child1 = QuadTree(Bounds{top_left, center});
       QuadTree child2 = QuadTree(Bounds{center, bottom_right}); // problem child
       QuadTree child3 = QuadTree(Bounds{top_center, right_center});
       QuadTree child4 = QuadTree(Bounds{left_center, bottom_center});
 
-      child1.generate(particle_max * 2);
-      child2.generate(particle_max * 2);
-      child3.generate(particle_max * 2);
-      child4.generate(particle_max * 2);
+      child1.generate(particle_max);
+      child2.generate(particle_max);
+      child3.generate(particle_max);
+      child4.generate(particle_max);
 
       children.push_back(child1);
       children.push_back(child2);
@@ -88,16 +88,9 @@ void QuadTree::generate(int particle_max) {
 void QuadTree::physicsProcess(float dt) {
   if (quad_particles.empty()) {
     if (is_root) {
-      std::thread thread1(&QuadTree::physicsProcess, &children[0], dt);
-      std::thread thread2(&QuadTree::physicsProcess, &children[0], dt);
-      std::thread thread3(&QuadTree::physicsProcess, &children[0], dt);
-      std::thread thread4(&QuadTree::physicsProcess, &children[0], dt);
-
-      thread1.join();
-      thread2.join();
-      thread3.join();
-      thread4.join();
-
+      for (QuadTree child : children){
+        Simulation::thread_pool.QueueJob([&child, dt]{child.physicsProcess(dt);});
+      }
     } else {
       for (QuadTree child : children) {
         child.physicsProcess(dt);
@@ -120,7 +113,7 @@ void QuadTree::physicsProcess(float dt) {
 
       if (Simulation::interactions_enabled) {
         particle->velocity +=
-            dir * (particle->getInteractionForces(particle2->color) / distance);
+            dir * (particle->getInteractionForces(particle2->type) / distance);
       }
       if (Simulation::reactions_enabled) {
         Particle::updateReactions(particle);
@@ -130,13 +123,20 @@ void QuadTree::physicsProcess(float dt) {
         particle->touched(particle2);
         float dif = (radi - distance);
 
-        float particle1_vel_percentage = -((radToDeg(angleBetween(dir, particle->velocity)) - 180.0f) / 180.0f);
-        float particle2_vel_percentage = -((radToDeg(angleBetween(dir, particle2->velocity)) - 180.0f) / 180.0f);
+        float particle1_vel_percentage =
+            -((radToDeg(angleBetween(dir, particle->velocity)) - 180.0f) /
+              180.0f);
+        float particle2_vel_percentage =
+            -((radToDeg(angleBetween(dir, particle2->velocity)) - 180.0f) /
+              180.0f);
 
         /*printf("%f\n", particle1_vel_percentage);*/
 
-        particle->velocity -= dir * (vecMagnitude(particle2->velocity * 0.125f) * particle2_vel_percentage); 
-        particle2->velocity += dir * (vecMagnitude(particle->velocity * 0.25f) * particle1_vel_percentage);
+        particle->velocity -=
+            dir * (vecMagnitude(particle2->velocity * 0.125f) *
+                   particle2_vel_percentage);
+        particle2->velocity += dir * (vecMagnitude(particle->velocity * 0.125f) *
+                                      particle1_vel_percentage);
 
         particle->position -= dir * dif * 0.5f;
         particle2->position += dir * dif * 0.5f;

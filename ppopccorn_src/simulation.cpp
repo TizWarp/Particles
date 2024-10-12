@@ -1,4 +1,11 @@
 #include "simulation.hpp"
+#include "SFML/Graphics/CircleShape.hpp"
+#include "SFML/Graphics/PrimitiveType.hpp"
+#include "SFML/Graphics/RenderStates.hpp"
+#include "SFML/Graphics/Shader.hpp"
+#include "SFML/Graphics/Texture.hpp"
+#include "SFML/Graphics/Vertex.hpp"
+#include "SFML/Graphics/VertexArray.hpp"
 #include "defines.hpp"
 #include "imgui-SFML.h"
 #include "imgui.h"
@@ -19,12 +26,15 @@
 #include <SFML/Window/VideoMode.hpp>
 #include <SFML/Window/WindowStyle.hpp>
 #include <cmath>
+#include <csignal>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <format>
 #include <string>
+#include <thread>
 #include <vector>
+
 const int SUBSTEPS = 8;
 
 void Simulation::init() {
@@ -40,6 +50,11 @@ void Simulation::init() {
 
   this->physics_paused = false;
   this->draw_quad_tree = false;
+  this->initial_particle_quad_max = 32;
+
+  this->object_va = sf::VertexArray(sf::Quads);
+
+  this->thread_pool.Start();
 
   font.loadFromFile("./res/Symbola.otf");
 
@@ -84,7 +99,7 @@ void Simulation::physicsUpdate(float dt) {
 
   quad_tree.clear();
   quad_tree.resize(Bounds{heighest_particle, lowest_particle});
-  quad_tree.generate(4);
+  quad_tree.generate(initial_particle_quad_max);
 
   for (int sub_step = 0; sub_step < SUBSTEPS; sub_step++) {
     quad_tree.physicsProcess(substep_time);
@@ -120,10 +135,10 @@ void Simulation::renderPass() {
   if (draw_quad_tree) {
     quad_tree.render(window);
   }
-  for (int index = 0; index < particles.size(); index++) {
-    Particle *particle = &particles[index];
-    particle->draw(window);
+  if (selected_particle != nullptr) {
+    selected_particle->renderInspector();
   }
+  window.draw(object_va, states);
 }
 
 void Simulation::clearParticles() { Simulation::particles.clear(); }
@@ -163,11 +178,19 @@ void Simulation::bounceBoundsCheck(Particle *paticle) {
 }
 
 void Simulation::run() {
+  sf::Texture texture;
+  texture.loadFromFile("./res/circle.png");
+  texture.generateMipmap();
+  /*texture.setSmooth(true);*/
+
+  /*states = sf::RenderStates::Default;*/
+  states.texture = &texture;
 
   int spawn_timer = 0;
   window.setVerticalSyncEnabled(true);
 
   while (window.isOpen()) {
+
     sf::Event event;
     while (window.pollEvent(event)) {
       ImGui::SFML::ProcessEvent(window, event);
@@ -191,10 +214,20 @@ void Simulation::run() {
       }
       if (event.type == sf::Event::MouseButtonPressed) {
         if (event.mouseButton.button == sf::Mouse::Button::Left) {
-          Simulation::mouseState = PUSH;
+          Vector2 mouse_pos((float)event.mouseButton.x,
+                            (float)event.mouseButton.y);
+          for (int particle_index = 0;
+               particle_index < Simulation::particles.size();
+               particle_index++) {
+            Particle *particle = &Simulation::particles[particle_index];
+            if (particle->containsPoint(mouse_pos)) {
+              selected_particle = particle;
+              break;
+            }
+          }
         }
         if (event.mouseButton.button == sf::Mouse::Button::Right) {
-          Simulation::mouseState = PULL;
+          selected_particle = nullptr;
         }
       }
       if (event.type == sf::Event::KeyPressed) {
@@ -208,6 +241,7 @@ void Simulation::run() {
     }
 
     sf::Time deltaTime = deltaClock.restart();
+    float deltaTimeSecs = deltaTime.asSeconds();
     ImGui::SFML::Update(window, deltaTime);
 
     renderUI();
@@ -215,8 +249,11 @@ void Simulation::run() {
     window.clear(sf::Color::Black);
 
     if (!physics_paused) {
-      physicsUpdate(deltaTime.asSeconds());
+      /*thread_pool.QueueJob([this, deltaTimeSecs]{this->physicsUpdate(0.125f * deltaTimeSecs);});*/
+      physicsUpdate(0.125f * deltaTimeSecs);
     }
+
+    thread_pool.QueueJob([this]{this->updateVA();});
     renderPass();
 
     fps = int(1.0f / deltaTime.asSeconds());
@@ -224,16 +261,20 @@ void Simulation::run() {
     ImGui::SFML::Render(window);
     window.display();
 
+
     Vector2 spawn_location =
         Vector2((float)window.getSize().x, (float)window.getSize().y);
     spawn_timer = (spawn_timer += 1) % 120;
     if (Simulation::particles.size() < particle_max && !physics_paused) {
-      addParticle(5.0f, bounds.lower / 2.0f, sf::Vector2(50.0f, 50.0f), Simulation::particles.size() % 8);
+      addParticle(5.0f, bounds.lower / 2.0f, sf::Vector2(50.0f, 50.0f),
+                  Simulation::particles.size() % 8);
     };
-    if (Simulation::particles.size() > particle_max){
+    if (Simulation::particles.size() > particle_max) {
       Simulation::particles.pop_back();
     }
   }
+
+  thread_pool.Stop();
 }
 
 void Simulation::renderUI() {
@@ -265,11 +306,12 @@ void Simulation::renderUI() {
   }
   if (ImGui::CollapsingHeader("Particle Interactions")) {
     for (int particle_type = 0; particle_type < 8; particle_type++) {
-      if (ImGui::TreeNode(std::to_string(particle_type).c_str(), "Particle %d Interactions", particle_type)){
+      if (ImGui::TreeNode(std::to_string(particle_type).c_str(),
+                          "Particle %d Interactions", particle_type + 1)) {
         for (int other_particle = 0; other_particle < 8; other_particle++) {
           std::string particle_str = "Particle ";
           ImGui::SliderFloat(
-             particle_str.append(std::to_string(other_particle)).c_str(),
+              particle_str.append(std::to_string(other_particle + 1)).c_str(),
               Particle::getInteractionForcesPtr(particle_type, other_particle),
               -25.0f, 25.0f);
         }
@@ -278,4 +320,30 @@ void Simulation::renderUI() {
     }
   }
   ImGui::End();
+}
+
+
+void Simulation::updateVA(){
+  object_va.resize(Simulation::particles.size() * 4);
+  float texture_size = 1024.0f;
+  float radius = 5.0f;
+  for (uint32_t i = 0; i < Simulation::particles.size(); i++){
+    uint32_t idx = i << 2;
+    const Particle& particle = Simulation::particles[i];
+
+    object_va[idx + 0].position = particle.position + Vector2(-radius, -radius);
+    object_va[idx + 1].position = particle.position + Vector2(radius, -radius);
+    object_va[idx + 2].position = particle.position + Vector2(radius, radius);
+    object_va[idx + 3].position = particle.position + Vector2(-radius, radius);
+    object_va[idx + 0].texCoords = {0.0f, 0.0f};
+    object_va[idx + 1].texCoords = {texture_size, 0.0f};
+    object_va[idx + 2].texCoords = {texture_size, texture_size};
+    object_va[idx + 3].texCoords = {0.0f, texture_size};
+
+    const sf::Color color = Particle::particle_colors[particle.type].toIntColor();
+    object_va[idx + 0].color = color;
+    object_va[idx + 1].color = color;
+    object_va[idx + 2].color = color;
+    object_va[idx + 3].color = color;
+  }
 }
