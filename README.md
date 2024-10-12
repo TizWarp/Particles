@@ -1,7 +1,17 @@
 # Ppopccorn
 ### A Particle life simulator
 
-## Installation
-- Make sure SFML and Cmake are on your system
-- Clone repo and run cmake ./
-- Binaries will be located in the **./bin** folder
+
+## Compiling
+
+### Linux
+- install cmake
+- clone repo
+- run cmake
+- run make
+- enjoy
+
+
+### Windows
+- I got it to work with Mysys2
+- good luck
