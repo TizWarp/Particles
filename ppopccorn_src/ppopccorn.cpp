@@ -29,6 +29,14 @@
 
 int main() {
 
+  /*Vector2 test1(0.0f, 1.0f);*/
+  /*Vector2 test2(0.0f, 0.0f);*/
+  
+  /*float percent = 1.0f - (radToDeg(angleBetween(test1, test2)) / 180.0f);*/
+  /*printf("%f\n",percent);*/
+
+  /*return 0;*/
+
   Simulation sim = Simulation();
   sim.init();
   

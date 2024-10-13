@@ -178,6 +178,9 @@ void Simulation::bounceBoundsCheck(Particle *paticle) {
 }
 
 void Simulation::run() {
+
+  bool do_one_set = false;
+
   sf::Texture texture;
   texture.loadFromFile("./res/circle.png");
   texture.generateMipmap();
@@ -237,6 +240,9 @@ void Simulation::run() {
         if (event.key.code == sf::Keyboard::Space) {
           physics_paused = !physics_paused;
         }
+        if (event.key.code == sf::Keyboard::Enter && physics_paused){
+          do_one_set = true;
+        }
       }
     }
 
@@ -251,6 +257,9 @@ void Simulation::run() {
     if (!physics_paused) {
       /*thread_pool.QueueJob([this, deltaTimeSecs]{this->physicsUpdate(0.125f * deltaTimeSecs);});*/
       physicsUpdate(0.125f * deltaTimeSecs);
+    } else if (do_one_set){
+      physicsUpdate(0.125f * deltaTimeSecs);
+      do_one_set = false;
     }
 
     thread_pool.QueueJob([this]{this->updateVA();});
@@ -264,10 +273,10 @@ void Simulation::run() {
 
     Vector2 spawn_location =
         Vector2((float)window.getSize().x, (float)window.getSize().y);
-    spawn_timer = (spawn_timer += 1) % 120;
+    spawn_timer = (spawn_timer += 1) % 100;
     if (Simulation::particles.size() < particle_max && !physics_paused) {
       addParticle(5.0f, bounds.lower / 2.0f, sf::Vector2(50.0f, 50.0f),
-                  Simulation::particles.size() % 8);
+                  Simulation::particles.size() % 3);
     };
     if (Simulation::particles.size() > particle_max) {
       Simulation::particles.pop_back();

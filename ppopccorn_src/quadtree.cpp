@@ -115,28 +115,23 @@ void QuadTree::physicsProcess(float dt) {
         particle->velocity +=
             dir * (particle->getInteractionForces(particle2->type) / distance);
       }
-      if (Simulation::reactions_enabled) {
-        Particle::updateReactions(particle);
-      }
 
       if (distance < radi) {
         particle->touched(particle2);
         float dif = (radi - distance);
 
-        float particle1_vel_percentage =
-            -((radToDeg(angleBetween(dir, particle->velocity)) - 180.0f) /
-              180.0f);
-        float particle2_vel_percentage =
-            -((radToDeg(angleBetween(dir, particle2->velocity)) - 180.0f) /
-              180.0f);
+        float particle1_vel_percentage = 1.0f - (radToDeg(angleBetween(normalizeVec(particle->velocity), dir))/180.0f);  
+        float particle2_vel_percentage = 1.0f - (radToDeg(angleBetween(normalizeVec(particle2->velocity), dir))/180.0f);  
 
-        /*printf("%f\n", particle1_vel_percentage);*/
+        if (particle1_vel_percentage != particle1_vel_percentage){
+          particle1_vel_percentage = 0.0f;
+        }
+        if (particle2_vel_percentage != particle2_vel_percentage){
+          particle2_vel_percentage = 0.0f;
+        }
 
-        particle->velocity -=
-            dir * (vecMagnitude(particle2->velocity * 0.125f) *
-                   particle2_vel_percentage);
-        particle2->velocity += dir * (vecMagnitude(particle->velocity * 0.125f) *
-                                      particle1_vel_percentage);
+        particle->velocity -= dir * particle2_vel_percentage * vecMagnitude(particle2->velocity) * 0.125f;
+        particle2->velocity += dir * particle1_vel_percentage * vecMagnitude(particle->velocity) * 0.125f;
 
         particle->position -= dir * dif * 0.5f;
         particle2->position += dir * dif * 0.5f;

@@ -12,9 +12,12 @@ float radToDeg(float rads){
 }
 
 float angleBetween(Vector2 vec1, Vector2 vec2) {
-  float dot = vec1.x * vec2.x + vec1.y * vec2.y;
-  float det = vec1.x * vec2.y - vec1.y * vec2.x;
-  return atan2(dot, det);
+  float mag1 = vecMagnitude(vec1);
+  float mag2 = vecMagnitude(vec2);
+
+  float dot = (vec1.x * vec2.x) + (vec1.y * vec2.y);
+  float det = mag1 * mag2;
+  return acos(dot/det);
 }
 
 float vecMagnitude(Vector2 vec) {
