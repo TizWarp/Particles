@@ -1,0 +1,16 @@
+ParticleSim
+CMakeCache.txt
+./CMakeFiles/*
+./misc/*
+./.vscode/*
+./Makefile
+CMakeFiles/
+cmake_install.cmake
+Makefile
+bin/
+lib/
+.cache/
+_deps/
+CPackConfig.cmake
+CPackSourceConfig.cmake
+imgui.ini
