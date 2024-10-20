@@ -1,0 +1,8 @@
+.cache
+.vscode
+bin
+CMakeFiles
+CMakeCache.txt
+cmake_insall_cmake.cmake
+Makefile
+

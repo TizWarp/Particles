@@ -1,0 +1,38 @@
+[
+{
+  "directory": "/home/tizwarp/Projects/aparatus_vivi",
+  "command": "/usr/bin/c++ -DFMT_SHARED -DSPDLOG_FMT_EXTERNAL -I/home/tizwarp/Projects/aparatus_vivi/./includes -isystem /usr/include/SDL2  -o CMakeFiles/AparatusVivi.dir/src/application.cpp.o -c /home/tizwarp/Projects/aparatus_vivi/src/application.cpp",
+  "file": "/home/tizwarp/Projects/aparatus_vivi/src/application.cpp",
+  "output": "CMakeFiles/AparatusVivi.dir/src/application.cpp.o"
+},
+{
+  "directory": "/home/tizwarp/Projects/aparatus_vivi",
+  "command": "/usr/bin/c++ -DFMT_SHARED -DSPDLOG_FMT_EXTERNAL -I/home/tizwarp/Projects/aparatus_vivi/./includes -isystem /usr/include/SDL2  -o CMakeFiles/AparatusVivi.dir/src/camera.cpp.o -c /home/tizwarp/Projects/aparatus_vivi/src/camera.cpp",
+  "file": "/home/tizwarp/Projects/aparatus_vivi/src/camera.cpp",
+  "output": "CMakeFiles/AparatusVivi.dir/src/camera.cpp.o"
+},
+{
+  "directory": "/home/tizwarp/Projects/aparatus_vivi",
+  "command": "/usr/bin/c++ -DFMT_SHARED -DSPDLOG_FMT_EXTERNAL -I/home/tizwarp/Projects/aparatus_vivi/./includes -isystem /usr/include/SDL2  -o CMakeFiles/AparatusVivi.dir/src/events.cpp.o -c /home/tizwarp/Projects/aparatus_vivi/src/events.cpp",
+  "file": "/home/tizwarp/Projects/aparatus_vivi/src/events.cpp",
+  "output": "CMakeFiles/AparatusVivi.dir/src/events.cpp.o"
+},
+{
+  "directory": "/home/tizwarp/Projects/aparatus_vivi",
+  "command": "/usr/bin/c++ -DFMT_SHARED -DSPDLOG_FMT_EXTERNAL -I/home/tizwarp/Projects/aparatus_vivi/./includes -isystem /usr/include/SDL2  -o CMakeFiles/AparatusVivi.dir/src/main.cpp.o -c /home/tizwarp/Projects/aparatus_vivi/src/main.cpp",
+  "file": "/home/tizwarp/Projects/aparatus_vivi/src/main.cpp",
+  "output": "CMakeFiles/AparatusVivi.dir/src/main.cpp.o"
+},
+{
+  "directory": "/home/tizwarp/Projects/aparatus_vivi",
+  "command": "/usr/bin/c++ -DFMT_SHARED -DSPDLOG_FMT_EXTERNAL -I/home/tizwarp/Projects/aparatus_vivi/./includes -isystem /usr/include/SDL2  -o CMakeFiles/AparatusVivi.dir/src/renderer.cpp.o -c /home/tizwarp/Projects/aparatus_vivi/src/renderer.cpp",
+  "file": "/home/tizwarp/Projects/aparatus_vivi/src/renderer.cpp",
+  "output": "CMakeFiles/AparatusVivi.dir/src/renderer.cpp.o"
+},
+{
+  "directory": "/home/tizwarp/Projects/aparatus_vivi",
+  "command": "/usr/bin/c++ -DFMT_SHARED -DSPDLOG_FMT_EXTERNAL -I/home/tizwarp/Projects/aparatus_vivi/./includes -isystem /usr/include/SDL2  -o CMakeFiles/AparatusVivi.dir/src/simulation.cpp.o -c /home/tizwarp/Projects/aparatus_vivi/src/simulation.cpp",
+  "file": "/home/tizwarp/Projects/aparatus_vivi/src/simulation.cpp",
+  "output": "CMakeFiles/AparatusVivi.dir/src/simulation.cpp.o"
+}
+]
