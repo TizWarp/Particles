@@ -27,10 +27,13 @@ namespace Renderer{
   static Texture* texture = nullptr;
 
   const float particle_vertices[] = {
-    -0.25f, 0.25f, 0.0f, 0.0f, 1.0f, // top left
-    0.25f, 0.25f, 0.0f, 1.0f, 1.0f, // top right
-    0.25f, -0.25f, 0.0f, 1.0f, 0.0f, // bottom right
-    -0.25f, -0.25f, 0.0f, 0.0f, 0.0f, // bottom left
+    -0.25f, 0.25f, 0.0f, 1.0f,
+    -0.25f, -0.25f, 0.0f, 0.0f,
+    0.25f, -0.25f, 1.0f, 0.0f,
+
+    -0.25f, 0.25f, 0.0f, 1.0f,
+    0.25f, 0.25f, 1.0f, 1.0f,
+    0.25f, -0.25f, 1.0f, 0.0f,
   };
 
 };
@@ -46,6 +49,9 @@ void Renderer::initRenderer(){
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
 
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_DST_ALPHA, GL_SRC_ALPHA);
+
   shader = new Shader("./res/shaders/view_shader.vs", "./res/shaders/view_shader.fs");
   texture = new Texture("./res/textures/circle.png");
 
@@ -59,11 +65,11 @@ void Renderer::initRenderer(){
   // location zero is position
   glBufferData(GL_ARRAY_BUFFER, sizeof(particle_vertices), particle_vertices, GL_STATIC_DRAW);
 
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
   glEnableVertexAttribArray(0);
 
   // location 1 is texture coords;
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
   glEnableVertexAttribArray(1);
 
   glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
@@ -125,10 +131,13 @@ void Renderer::pushParticle(Particle *particle){
 void Renderer::drawFrame(){
   camera.update();
 
-  glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+  glClearColor(0.1f, 0.3f, 0.5f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  glDrawArraysInstanced(GL_QUADS, 0, 4, drawable_particles.size());
+  glActiveTexture(GL_TEXTURE0);
+  texture->use();
+
+  glDrawArraysInstanced(GL_TRIANGLES, 0, 6, drawable_particles.size());
   drawable_particles.clear();
 }
 
